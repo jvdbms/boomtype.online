@@ -1,0 +1,175 @@
+ this is my boomtype vercel project id "prj_UZPEDGy9J3rQpAYWxVazfz8b0cHw" and i want to make some changes and addition into my app for upgrate it can you create it and advanced app new promt is "You are a senior full-stack developer and product designer.
+
+Your task is to upgrade my existing typing tutor web app called "BoomType" into a world-class, viral, SaaS-ready platform.
+
+⚡ OBJECTIVE:
+Build a modern, fast, mobile-first typing tutor app that is optimized for:
+
+* Virality (sharing + challenges)
+* Monetization (ads + premium + certificates)
+* SEO (organic traffic)
+* High user retention (gamification)
+
+---
+
+🔥 CORE FEATURES TO IMPLEMENT:
+
+1. 🧪 Typing Speed Test Engine
+
+* Real-time typing test (30s / 60s options)
+* Show WPM (words per minute), accuracy %, mistakes
+* Live typing feedback (highlight correct/incorrect words)
+* Instant result screen after completion
+
+---
+
+2. 🏆 Leaderboard System
+
+* Daily, weekly, all-time leaderboard
+* Show top 10 users with WPM
+* Allow user nickname submission
+
+---
+
+3. 🎮 Gamification System
+
+* User levels (Beginner → Intermediate → Pro → Master)
+* XP points for each test
+* Daily streak tracking
+* Achievement badges
+
+---
+
+4. 📤 Viral Sharing System (VERY IMPORTANT)
+
+* Add "Share Result" button
+* Share text auto-generated:
+  "I scored XX WPM on BoomType 😎 Can you beat me?"
+* Buttons:
+
+  * WhatsApp
+  * Facebook
+  * Copy link
+
+---
+
+5. 💎 Premium System (Freemium Model)
+
+* Free users: limited tests + ads
+* Premium users:
+
+  * No ads
+  * Advanced typing lessons
+  * Detailed analytics
+* Add upgrade button with pricing UI
+
+---
+
+6. 💰 Ad Integration
+
+* Add placeholders for Google AdSense ads:
+
+  * Top banner
+  * Between sections
+  * Result page
+
+---
+
+7. 🧾 Certificate System
+
+* After test, show option:
+  "Download Official Typing Certificate"
+* Generate PDF with:
+
+  * User name
+  * WPM score
+  * Date
+  * BoomType branding
+
+---
+
+8. 🌐 SEO Optimization
+
+* Add meta title and description for each page
+* Create pages:
+
+  * Home
+  * Typing Test
+  * Typing Lessons
+  * Blog
+* Add schema markup for SEO
+
+---
+
+9. 📊 Analytics Integration
+
+* Add Google Analytics tracking hooks
+* Track:
+
+  * page visits
+  * test starts
+  * test completions
+  * share clicks
+
+---
+
+10. 📱 UI/UX DESIGN (Modern & Clean)
+
+* Use clean, minimal, fast-loading design
+* Mobile-first responsive layout
+* Large CTA button: "Start Typing Test"
+* Use modern colors (blue/purple gradient)
+* Add animations for typing and results
+
+---
+
+11. ⚡ Performance Optimization
+
+* Optimize images
+* Lazy loading
+* Fast load time (<2 seconds)
+
+---
+
+12. 🛡️ Trust Pages
+
+* Add:
+
+  * About Us
+  * Contact Us
+  * Privacy Policy
+  * Terms & Conditions
+
+---
+
+🎯 LANDING PAGE STRUCTURE:
+
+* Hero Section:
+  "Test Your Typing Speed in 30 Seconds"
+  Button: Start Test
+
+* Social Proof:
+  "10,000+ users tested today"
+
+* Features Section:
+  Speed, Accuracy, Certificates
+
+* CTA Section:
+  "Can you beat 60 WPM?"
+
+---
+
+⚙️ TECH REQUIREMENTS:
+
+* Use modern JavaScript (React / Next.js if possible)
+* Clean and modular code
+* API-ready structure for future mobile app
+* Use local storage or backend for saving scores
+
+---
+
+🚀 FINAL GOAL:
+Make BoomType comparable to top typing platforms like Monkeytype and 10FastFingers, but with better virality and monetization features.
+
+Deliver a complete upgraded version of the app with all UI, components, and features implemented.
+"

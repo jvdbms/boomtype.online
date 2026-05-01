@@ -1,22 +1,29 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: BoomType Typing Tutor API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: scores
+    description: Typing test scores
+  - name: leaderboard
+    description: Leaderboard operations
+  - name: users
+    description: User profile operations
+  - name: stats
+    description: Statistics and aggregates
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +31,112 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /scores:
+    post:
+      operationId: submitScore
+      tags: [scores]
+      summary: Submit a typing test score
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitScoreBody"
+      responses:
+        "201":
+          description: Score submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Score"
+
+  /leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [leaderboard]
+      summary: Get leaderboard entries
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [daily, weekly, all_time]
+            default: all_time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Leaderboard entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
+
+  /stats/summary:
+    get:
+      operationId: getStatsSummary
+      tags: [stats]
+      summary: Get platform-wide stats summary
+      responses:
+        "200":
+          description: Platform stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatsSummary"
+
+  /stats/recent:
+    get:
+      operationId: getRecentActivity
+      tags: [stats]
+      summary: Get recent test completions
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 5
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Score"
+
+  /users/{nickname}:
+    get:
+      operationId: getUserProfile
+      tags: [users]
+      summary: Get user profile and personal bests
+      parameters:
+        - name: nickname
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +147,135 @@ components:
       required:
         - status
 
+    SubmitScoreBody:
+      type: object
+      properties:
+        nickname:
+          type: string
+        wpm:
+          type: number
+        accuracy:
+          type: number
+        duration:
+          type: integer
+          description: Test duration in seconds (30 or 60)
+        mistakes:
+          type: integer
+      required:
+        - nickname
+        - wpm
+        - accuracy
+        - duration
+        - mistakes
+
+    Score:
+      type: object
+      properties:
+        id:
+          type: integer
+        nickname:
+          type: string
+        wpm:
+          type: number
+        accuracy:
+          type: number
+        duration:
+          type: integer
+        mistakes:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - nickname
+        - wpm
+        - accuracy
+        - duration
+        - mistakes
+        - createdAt
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        nickname:
+          type: string
+        wpm:
+          type: number
+        accuracy:
+          type: number
+        testsCount:
+          type: integer
+        level:
+          type: string
+      required:
+        - rank
+        - nickname
+        - wpm
+        - accuracy
+        - testsCount
+        - level
+
+    StatsSummary:
+      type: object
+      properties:
+        totalTests:
+          type: integer
+        testsToday:
+          type: integer
+        avgWpm:
+          type: number
+        topWpm:
+          type: number
+        totalUsers:
+          type: integer
+      required:
+        - totalTests
+        - testsToday
+        - avgWpm
+        - topWpm
+        - totalUsers
+
+    UserProfile:
+      type: object
+      properties:
+        nickname:
+          type: string
+        bestWpm:
+          type: number
+        avgWpm:
+          type: number
+        avgAccuracy:
+          type: number
+        totalTests:
+          type: integer
+        level:
+          type: string
+        xp:
+          type: integer
+        streak:
+          type: integer
+        recentScores:
+          type: array
+          items:
+            $ref: "#/components/schemas/Score"
+      required:
+        - nickname
+        - bestWpm
+        - avgWpm
+        - avgAccuracy
+        - totalTests
+        - level
+        - xp
+        - streak
+        - recentScores
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
