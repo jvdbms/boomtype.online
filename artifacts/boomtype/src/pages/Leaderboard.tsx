@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
+import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { Trophy, Medal } from "lucide-react";
 import { useGetLeaderboard, getGetLeaderboardQueryKey } from "@workspace/api-client-react";
 import type { GetLeaderboardParams } from "@workspace/api-client-react";
 import { getLevelColor } from "@/lib/words";
+import AdBanner from "@/components/AdBanner";
 
 type Period = "daily" | "weekly" | "all_time";
 
@@ -18,6 +20,8 @@ export default function Leaderboard() {
 
   useEffect(() => {
     document.title = "Typing Leaderboard | BoomType — Top WPM Rankings";
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute("content", "See the top WPM typists worldwide. Daily, weekly, and all-time rankings on BoomType.");
   }, []);
 
   const params: GetLeaderboardParams = { period, limit: 10 };
@@ -41,7 +45,7 @@ export default function Leaderboard() {
             Global Rankings
           </div>
           <h1 className="text-4xl font-black mb-3">Leaderboard</h1>
-          <p className="text-muted-foreground">Top typists competing worldwide</p>
+          <p className="text-muted-foreground">Top typists competing worldwide — click a name to view their profile</p>
         </div>
 
         {/* Period Tabs */}
@@ -73,22 +77,28 @@ export default function Leaderboard() {
               const heights = ["h-24", "h-32", "h-20"];
 
               return (
-                <motion.div
-                  key={entry.nickname}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: podiumIdx * 0.1 }}
-                  className={`${heights[podiumIdx]} rounded-2xl ${style.bg} border ${style.border} flex flex-col items-center justify-end p-4`}
-                >
-                  <div className={`text-2xl font-black ${style.text} mb-1`}>{Math.round(entry.wpm)}</div>
-                  <div className="text-xs text-muted-foreground mb-1">WPM</div>
-                  <div className="text-sm font-bold truncate w-full text-center">{entry.nickname}</div>
-                  <div className={`text-xs ${style.text} font-bold mt-0.5`}>#{rank}</div>
-                </motion.div>
+                <Link key={entry.nickname} href={`/profile/${encodeURIComponent(entry.nickname)}`}>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: podiumIdx * 0.1 }}
+                    className={`${heights[podiumIdx]} rounded-2xl ${style.bg} border ${style.border} flex flex-col items-center justify-end p-4 cursor-pointer hover:opacity-80 transition-opacity`}
+                  >
+                    <div className={`text-2xl font-black ${style.text} mb-1`}>{Math.round(entry.wpm)}</div>
+                    <div className="text-xs text-muted-foreground mb-1">WPM</div>
+                    <div className="text-sm font-bold truncate w-full text-center">{entry.nickname}</div>
+                    <div className={`text-xs ${style.text} font-bold mt-0.5`}>#{rank}</div>
+                  </motion.div>
+                </Link>
               );
             })}
           </div>
         )}
+
+        {/* Ad */}
+        <div className="flex justify-center mb-6">
+          <AdBanner size="leaderboard" />
+        </div>
 
         {/* Full List */}
         <div className="rounded-2xl bg-card border border-border/60 overflow-hidden">
@@ -97,42 +107,47 @@ export default function Leaderboard() {
           </div>
 
           {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground">Loading rankings...</div>
+            <div className="p-8 text-center">
+              <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-3" />
+              <p className="text-muted-foreground text-sm">Loading rankings...</p>
+            </div>
           ) : leaderboard && leaderboard.length > 0 ? (
             <div className="divide-y divide-border/40">
               {leaderboard.map((entry, i) => {
                 const style = rankStyle(entry.rank);
                 return (
-                  <motion.div
-                    key={entry.nickname}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className="flex items-center gap-4 p-4 hover:bg-white/3 transition-colors"
-                    data-testid={`leaderboard-row-${i}`}
-                  >
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black ${style.bg} ${style.text}`}>
-                      {entry.rank <= 3 ? (
-                        <Medal className="w-4 h-4" />
-                      ) : (
-                        entry.rank
-                      )}
-                    </div>
+                  <Link key={entry.nickname} href={`/profile/${encodeURIComponent(entry.nickname)}`}>
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="flex items-center gap-4 p-4 hover:bg-white/3 transition-colors cursor-pointer group"
+                      data-testid={`leaderboard-row-${i}`}
+                    >
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black ${style.bg} ${style.text}`}>
+                        {entry.rank <= 3 ? (
+                          <Medal className="w-4 h-4" />
+                        ) : (
+                          entry.rank
+                        )}
+                      </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold truncate">{entry.nickname}</div>
-                      <div className={`text-xs ${getLevelColor(entry.level)} font-medium`}>{entry.level}</div>
-                    </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold truncate group-hover:text-primary transition-colors">{entry.nickname}</div>
+                        <div className={`text-xs ${getLevelColor(entry.level)} font-medium`}>{entry.level}</div>
+                      </div>
 
-                    <div className="text-right mr-4 hidden sm:block">
-                      <div className="text-sm text-muted-foreground">{entry.testsCount} tests</div>
-                    </div>
+                      <div className="text-right mr-4 hidden sm:block">
+                        <div className="text-sm text-muted-foreground">{entry.testsCount} tests</div>
+                        <div className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">View profile →</div>
+                      </div>
 
-                    <div className="text-right">
-                      <div className={`text-2xl font-black ${style.text}`}>{Math.round(entry.wpm)}</div>
-                      <div className="text-xs text-muted-foreground">WPM</div>
-                    </div>
-                  </motion.div>
+                      <div className="text-right">
+                        <div className={`text-2xl font-black ${style.text}`}>{Math.round(entry.wpm)}</div>
+                        <div className="text-xs text-muted-foreground">WPM</div>
+                      </div>
+                    </motion.div>
+                  </Link>
                 );
               })}
             </div>
@@ -140,6 +155,9 @@ export default function Leaderboard() {
             <div className="p-12 text-center">
               <Trophy className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
               <p className="text-muted-foreground">No entries yet. Be the first!</p>
+              <Link href="/test" className="inline-block mt-4 text-sm text-primary hover:underline">
+                Take a test →
+              </Link>
             </div>
           )}
         </div>

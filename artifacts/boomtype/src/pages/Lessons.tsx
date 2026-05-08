@@ -8,9 +8,9 @@ const lessons = [
   {
     id: 1,
     title: "Home Row Mastery",
-    description: "Master ASDF and JKL; — the foundation of touch typing.",
+    description: "Master ASDF and JKL; — the foundation of touch typing. Every key reaches from here.",
     difficulty: "Beginner",
-    duration: "10 min",
+    duration: "30s test",
     focus: "ASDF JKL;",
     premium: false,
     color: "from-green-500/20 to-emerald-500/10",
@@ -20,9 +20,9 @@ const lessons = [
   {
     id: 2,
     title: "Top Row Speed",
-    description: "Practice QWERTY and YUIOP for maximum finger efficiency.",
+    description: "Practice QWERTY and YUIOP for maximum finger efficiency and reach.",
     difficulty: "Beginner",
-    duration: "12 min",
+    duration: "30s test",
     focus: "QWERTY YUIOP",
     premium: false,
     color: "from-blue-500/20 to-cyan-500/10",
@@ -32,9 +32,9 @@ const lessons = [
   {
     id: 3,
     title: "Number Row Precision",
-    description: "Conquer the number row without looking down.",
+    description: "Conquer the number row without looking down. Essential for data entry and coding.",
     difficulty: "Intermediate",
-    duration: "15 min",
+    duration: "30s test",
     focus: "1234567890",
     premium: false,
     color: "from-yellow-500/20 to-amber-500/10",
@@ -44,9 +44,9 @@ const lessons = [
   {
     id: 4,
     title: "Speed Drills",
-    description: "High-intensity drills to push your WPM beyond 60.",
+    description: "High-intensity drills with the most common English words to push your WPM beyond 60.",
     difficulty: "Intermediate",
-    duration: "20 min",
+    duration: "60s test",
     focus: "Common words",
     premium: false,
     color: "from-orange-500/20 to-red-500/10",
@@ -56,9 +56,9 @@ const lessons = [
   {
     id: 5,
     title: "Advanced Punctuation",
-    description: "Master commas, semicolons, quotes, and special characters.",
+    description: "Master commas, semicolons, quotes, and special characters to type like a professional.",
     difficulty: "Pro",
-    duration: "25 min",
+    duration: "60s test",
     focus: "!@#$%,;:'\"",
     premium: true,
     color: "from-purple-500/20 to-violet-500/10",
@@ -68,9 +68,9 @@ const lessons = [
   {
     id: 6,
     title: "Code Typing",
-    description: "Practice typing code snippets, brackets, and symbols.",
+    description: "Practice typing code snippets, brackets, and symbols used in programming every day.",
     difficulty: "Master",
-    duration: "30 min",
+    duration: "60s test",
     focus: "{}[]()<>",
     premium: true,
     color: "from-pink-500/20 to-rose-500/10",
@@ -89,6 +89,8 @@ const difficultyColors: Record<string, string> = {
 export default function Lessons() {
   useEffect(() => {
     document.title = "Typing Lessons | BoomType — Learn to Type Faster";
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute("content", "Structured typing lessons from home row basics to advanced code typing. Build your WPM systematically.");
   }, []);
 
   return (
@@ -147,7 +149,7 @@ export default function Lessons() {
                   </Button>
                 </Link>
               ) : (
-                <Link href="/test">
+                <Link href={`/lessons/${lesson.id}`}>
                   <Button size="sm" variant="outline" className={`w-full border ${lesson.borderColor} ${lesson.textColor} hover:bg-white/5 gap-1.5`}>
                     <Zap className="w-3.5 h-3.5" />
                     Start Lesson

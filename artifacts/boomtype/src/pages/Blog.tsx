@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { BookOpen, Clock, ArrowRight } from "lucide-react";
 
@@ -51,6 +52,8 @@ const categoryColors: Record<string, string> = {
 export default function Blog() {
   useEffect(() => {
     document.title = "Typing Tips & Blog | BoomType — Improve Your WPM";
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute("content", "Expert guides, keyboard reviews, and typing science to help you type faster and smarter.");
   }, []);
 
   return (
@@ -72,43 +75,53 @@ export default function Blog() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
-              className="rounded-2xl bg-card border border-border/60 overflow-hidden hover:border-primary/30 transition-all duration-300 group cursor-pointer"
               data-testid={`blog-post-${post.id}`}
             >
-              <div className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${categoryColors[post.category]}`}>
-                    {post.category}
-                  </span>
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock className="w-3 h-3" />
-                    {post.readTime}
-                  </span>
-                </div>
+              <Link href={`/blog/${post.slug}`} className="block h-full">
+                <div className="rounded-2xl bg-card border border-border/60 overflow-hidden hover:border-primary/30 hover:bg-card/80 transition-all duration-300 group h-full cursor-pointer">
+                  <div className="p-6 h-full flex flex-col">
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${categoryColors[post.category]}`}>
+                        {post.category}
+                      </span>
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock className="w-3 h-3" />
+                        {post.readTime}
+                      </span>
+                    </div>
 
-                <h2 className="text-lg font-black mb-2 group-hover:text-primary transition-colors">
-                  {post.title}
-                </h2>
-                <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                  {post.excerpt}
-                </p>
+                    <h2 className="text-lg font-black mb-2 group-hover:text-primary transition-colors flex-1">
+                      {post.title}
+                    </h2>
+                    <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                      {post.excerpt}
+                    </p>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">{post.date}</span>
-                  <span className="flex items-center gap-1 text-sm text-primary font-medium group-hover:gap-2 transition-all">
-                    Read more <ArrowRight className="w-4 h-4" />
-                  </span>
+                    <div className="flex items-center justify-between mt-auto">
+                      <span className="text-xs text-muted-foreground">{post.date}</span>
+                      <span className="flex items-center gap-1 text-sm text-primary font-medium group-hover:gap-2 transition-all">
+                        Read more <ArrowRight className="w-4 h-4" />
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </Link>
             </motion.article>
           ))}
         </div>
 
-        <div className="mt-12 p-8 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="mt-12 p-8 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20 text-center"
+        >
           <h2 className="text-2xl font-black mb-2">Want to contribute?</h2>
           <p className="text-muted-foreground mb-4">Share your typing tips and reach thousands of typists worldwide.</p>
-          <p className="text-sm text-primary">Contact us at blog@boomtype.com</p>
-        </div>
+          <Link href="/contact" className="text-primary font-medium hover:underline">
+            Get in touch →
+          </Link>
+        </motion.div>
       </div>
     </div>
   );

@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Zap, Menu, X, Crown } from "lucide-react";
+import { Zap, Menu, X, Crown, Star, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getTotalXP, getStreak } from "@/lib/storage";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [location] = useLocation();
+
+  const xp = getTotalXP();
+  const { count: streak } = getStreak();
 
   const navLinks = [
     { href: "/", label: "Home" },
@@ -19,7 +23,8 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-2 group">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2 group shrink-0">
             <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center group-hover:bg-primary/30 transition-colors">
               <Zap className="w-4 h-4 text-primary" />
             </div>
@@ -29,6 +34,7 @@ export default function Navbar() {
             </span>
           </Link>
 
+          {/* Nav Links */}
           <div className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => (
               <Link
@@ -46,7 +52,20 @@ export default function Navbar() {
             ))}
           </div>
 
-          <div className="hidden md:flex items-center gap-3">
+          {/* Right side */}
+          <div className="hidden md:flex items-center gap-2">
+            {xp > 0 && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs font-bold">
+                <Star className="w-3 h-3 fill-yellow-400" />
+                {xp.toLocaleString()} XP
+              </div>
+            )}
+            {streak > 0 && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-bold">
+                <Flame className="w-3 h-3" />
+                {streak}d streak
+              </div>
+            )}
             <Link href="/premium">
               <Button size="sm" className="bg-gradient-to-r from-primary to-accent text-white font-semibold shadow-lg hover:opacity-90 transition-opacity gap-1.5">
                 <Crown className="w-3.5 h-3.5" />
@@ -55,6 +74,7 @@ export default function Navbar() {
             </Link>
           </div>
 
+          {/* Mobile toggle */}
           <button
             className="md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
             onClick={() => setIsOpen(!isOpen)}
@@ -65,9 +85,26 @@ export default function Navbar() {
         </div>
       </div>
 
+      {/* Mobile menu */}
       {isOpen && (
         <div className="md:hidden border-t border-border/50 bg-background/95 backdrop-blur-xl">
           <div className="px-4 py-3 space-y-1">
+            {(xp > 0 || streak > 0) && (
+              <div className="flex gap-2 pb-2">
+                {xp > 0 && (
+                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs font-bold">
+                    <Star className="w-3 h-3 fill-yellow-400" />
+                    {xp.toLocaleString()} XP
+                  </div>
+                )}
+                {streak > 0 && (
+                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-bold">
+                    <Flame className="w-3 h-3" />
+                    {streak}d
+                  </div>
+                )}
+              </div>
+            )}
             {navLinks.map((link) => (
               <Link
                 key={link.href}
