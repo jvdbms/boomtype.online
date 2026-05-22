@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
-import { motion, AnimatePresence } from "framer-motion";
-import { Timer, RefreshCw, Zap } from "lucide-react";
+import { motion } from "framer-motion";
+import { Timer, RefreshCw, Zap, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { generateWords } from "@/lib/words";
+import { generateWords, generateCategoryWords } from "@/lib/words";
 import { saveLastResult } from "@/lib/storage";
 import AdBanner from "@/components/AdBanner";
+import VoiceInstructor, { useVoice } from "@/components/VoiceInstructor";
 
 type CharState = "waiting" | "correct" | "incorrect" | "current";
 
@@ -14,9 +15,19 @@ interface CharInfo {
   state: CharState;
 }
 
+type TextCategory = "common" | "literature" | "code" | "random";
+
+const CATEGORY_LABELS: Record<TextCategory, string> = {
+  common: "Common Words",
+  literature: "Literature",
+  code: "Code",
+  random: "Random",
+};
+
 export default function TypingTest() {
   const [, setLocation] = useLocation();
   const [duration, setDuration] = useState<30 | 60>(30);
+  const [category, setCategory] = useState<TextCategory>("common");
   const [words, setWords] = useState<string[]>([]);
   const [charStates, setCharStates] = useState<CharInfo[][]>([]);
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
@@ -34,13 +45,17 @@ export default function TypingTest() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
   const wordContainerRef = useRef<HTMLDivElement>(null);
+  const halfSpokenRef = useRef(false);
+  const { speak } = useVoice();
 
   useEffect(() => {
     document.title = "Typing Speed Test | BoomType — Test Your WPM Free";
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute("content", "Free online typing speed test. Measure your WPM and accuracy in 30s or 60s. Choose from common words, literature, code, and more.");
   }, []);
 
   const initTest = useCallback(() => {
-    const newWords = generateWords(80);
+    const newWords = generateCategoryWords(category, 80);
     setWords(newWords);
     setCharStates(newWords.map(w => [
       ...w.split("").map(c => ({ char: c, state: "waiting" as CharState })),
@@ -57,7 +72,8 @@ export default function TypingTest() {
     setMistakes(0);
     setTotalKeystrokes(0);
     setCorrectKeystrokes(0);
-  }, [duration]);
+    halfSpokenRef.current = false;
+  }, [duration, category]);
 
   useEffect(() => {
     initTest();
@@ -71,12 +87,16 @@ export default function TypingTest() {
             finishTest();
             return 0;
           }
+          if (prev === Math.floor(duration / 2) && !halfSpokenRef.current) {
+            halfSpokenRef.current = true;
+            speak(`Halfway there! Keep going!`);
+          }
           return prev - 1;
         });
       }, 1000);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [isStarted, isFinished]);
+  }, [isStarted, isFinished, duration]);
 
   useEffect(() => {
     if (isStarted && !isFinished) {
@@ -94,10 +114,10 @@ export default function TypingTest() {
     const finalAccuracy = totalKeystrokes > 0 ? Math.round((correctKeystrokes / totalKeystrokes) * 100) : 100;
     setWpm(finalWpm);
     setAccuracy(finalAccuracy);
-
+    speak(`Test complete! You scored ${finalWpm} words per minute with ${finalAccuracy} percent accuracy. Excellent!`, true);
     saveLastResult({ wpm: finalWpm, accuracy: finalAccuracy, mistakes, duration });
-    setTimeout(() => setLocation("/results"), 500);
-  }, [currentWordIndex, totalKeystrokes, correctKeystrokes, mistakes, duration, setLocation]);
+    setTimeout(() => setLocation("/results"), 1200);
+  }, [currentWordIndex, totalKeystrokes, correctKeystrokes, mistakes, duration, setLocation, speak]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (isFinished) return;
@@ -105,11 +125,11 @@ export default function TypingTest() {
     if (!isStarted && e.key !== "Tab") {
       setIsStarted(true);
       startTimeRef.current = Date.now();
+      speak(`Test started! Go!`, true);
     }
 
     const currentWord = words[currentWordIndex];
     if (!currentWord) return;
-
     const wordChars = charStates[currentWordIndex];
     if (!wordChars) return;
 
@@ -138,7 +158,7 @@ export default function TypingTest() {
         setCurrentWordIndex(prev => {
           const next = prev + 1;
           if (next >= words.length - 5) {
-            const moreWords = generateWords(20);
+            const moreWords = generateCategoryWords(category, 20);
             setWords(w => [...w, ...moreWords]);
             setCharStates(cs => [...cs, ...moreWords.map(w => [
               ...w.split("").map(c => ({ char: c, state: "waiting" as CharState })),
@@ -200,7 +220,7 @@ export default function TypingTest() {
         return next;
       });
     }
-  }, [isFinished, isStarted, input, currentWordIndex, words, charStates]);
+  }, [isFinished, isStarted, input, currentWordIndex, words, charStates, category, speak]);
 
   const timerPercent = (timeLeft / duration) * 100;
 
@@ -212,20 +232,37 @@ export default function TypingTest() {
           <p className="text-muted-foreground">Click below and start typing to begin</p>
         </div>
 
-        {/* Duration Selector */}
+        {/* Controls row */}
         {!isStarted && !isFinished && (
-          <div className="flex justify-center gap-3 mb-8">
-            {([30, 60] as const).map(d => (
-              <Button
-                key={d}
-                variant={duration === d ? "default" : "outline"}
-                onClick={() => { setDuration(d); }}
-                className={`px-6 font-bold ${duration === d ? "bg-primary text-white" : "border-border/60 hover:bg-white/5"}`}
-                data-testid={`button-duration-${d}`}
-              >
-                {d}s
-              </Button>
-            ))}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+            <div className="flex gap-2">
+              {([30, 60] as const).map(d => (
+                <Button
+                  key={d}
+                  variant={duration === d ? "default" : "outline"}
+                  onClick={() => { setDuration(d); }}
+                  className={`px-6 font-bold ${duration === d ? "bg-primary text-white" : "border-border/60 hover:bg-white/5"}`}
+                  data-testid={`button-duration-${d}`}
+                >
+                  {d}s
+                </Button>
+              ))}
+            </div>
+            <div className="flex gap-2 flex-wrap justify-center">
+              {(Object.keys(CATEGORY_LABELS) as TextCategory[]).map(cat => (
+                <Button
+                  key={cat}
+                  variant={category === cat ? "default" : "outline"}
+                  onClick={() => setCategory(cat)}
+                  size="sm"
+                  className={`gap-1.5 ${category === cat ? "bg-accent/80 text-white border-accent" : "border-border/60 hover:bg-white/5 text-muted-foreground"}`}
+                >
+                  <BookOpen className="w-3 h-3" />
+                  {CATEGORY_LABELS[cat]}
+                </Button>
+              ))}
+            </div>
+            <VoiceInstructor />
           </div>
         )}
 
@@ -276,7 +313,7 @@ export default function TypingTest() {
               <div className="text-center">
                 <Zap className="w-8 h-8 text-primary mx-auto mb-3" />
                 <p className="text-lg font-bold">Click here to start</p>
-                <p className="text-sm text-muted-foreground mt-1">Then start typing!</p>
+                <p className="text-sm text-muted-foreground mt-1">Then start typing — <span className="text-primary font-medium">{CATEGORY_LABELS[category]}</span> mode</p>
               </div>
             </div>
           )}

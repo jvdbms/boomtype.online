@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Zap, Menu, X, Crown, Star, Flame } from "lucide-react";
+import { Zap, Menu, X, Crown, Star, Flame, Gamepad2, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getTotalXP, getStreak } from "@/lib/storage";
 
@@ -16,6 +16,7 @@ export default function Navbar() {
     { href: "/test", label: "Test" },
     { href: "/leaderboard", label: "Leaderboard" },
     { href: "/lessons", label: "Lessons" },
+    { href: "/games", label: "Games", icon: Gamepad2 },
     { href: "/blog", label: "Blog" },
   ];
 
@@ -36,20 +37,24 @@ export default function Navbar() {
 
           {/* Nav Links */}
           <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  location === link.href
-                    ? "bg-primary/15 text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-                }`}
-                data-testid={`nav-link-${link.label.toLowerCase()}`}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              const Icon = link.icon;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${
+                    location === link.href || location.startsWith(link.href + "/")
+                      ? "bg-primary/15 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  }`}
+                  data-testid={`nav-link-${link.label.toLowerCase()}`}
+                >
+                  {Icon && <Icon className="w-3.5 h-3.5" />}
+                  {link.label}
+                </Link>
+              );
+            })}
           </div>
 
           {/* Right side */}
@@ -66,6 +71,12 @@ export default function Navbar() {
                 {streak}d streak
               </div>
             )}
+            <Link href="/payment">
+              <Button size="sm" variant="outline" className="border-border/60 hover:bg-white/5 gap-1.5 text-muted-foreground hover:text-foreground">
+                <CreditCard className="w-3.5 h-3.5" />
+                Pay
+              </Button>
+            </Link>
             <Link href="/premium">
               <Button size="sm" className="bg-gradient-to-r from-primary to-accent text-white font-semibold shadow-lg hover:opacity-90 transition-opacity gap-1.5">
                 <Crown className="w-3.5 h-3.5" />
@@ -105,22 +116,32 @@ export default function Navbar() {
                 )}
               </div>
             )}
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`block px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  location === link.href
-                    ? "bg-primary/15 text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-                }`}
-                onClick={() => setIsOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              const Icon = link.icon;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                    location === link.href || location.startsWith(link.href + "/")
+                      ? "bg-primary/15 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  }`}
+                  onClick={() => setIsOpen(false)}
+                >
+                  {Icon && <Icon className="w-4 h-4" />}
+                  {link.label}
+                </Link>
+              );
+            })}
+            <Link href="/payment" onClick={() => setIsOpen(false)}>
+              <Button variant="outline" className="w-full mt-2 border-border/60 gap-1.5 text-muted-foreground">
+                <CreditCard className="w-3.5 h-3.5" />
+                Pay via JazzCash / EasyPaisa
+              </Button>
+            </Link>
             <Link href="/premium" onClick={() => setIsOpen(false)}>
-              <Button className="w-full mt-2 bg-gradient-to-r from-primary to-accent text-white font-semibold gap-1.5">
+              <Button className="w-full mt-1 bg-gradient-to-r from-primary to-accent text-white font-semibold gap-1.5">
                 <Crown className="w-3.5 h-3.5" />
                 Go Premium
               </Button>

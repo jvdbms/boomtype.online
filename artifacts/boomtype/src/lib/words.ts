@@ -36,6 +36,51 @@ export const WORD_LIST = [
   "nothing", "million", "through", "without", "question", "system",
 ];
 
+const LITERATURE_WORDS = [
+  "it", "was", "the", "best", "of", "times", "worst", "age", "wisdom",
+  "foolishness", "belief", "incredulity", "season", "light", "darkness",
+  "hope", "despair", "everything", "nothing", "call", "me", "ishmael",
+  "some", "years", "ago", "never", "mind", "how", "long", "precisely",
+  "having", "little", "money", "pocket", "nothing", "particular",
+  "interest", "shore", "thought", "would", "sail", "about", "little",
+  "see", "watery", "part", "world", "whenever", "find", "myself",
+  "growing", "grim", "mouth", "whenever", "damp", "drizzly", "november",
+  "soul", "whenever", "find", "involuntarily", "pausing", "before",
+  "coffin", "warehouses", "bringing", "up", "rear", "every", "funeral",
+  "meet", "especially", "whenever", "hypos", "get", "such", "upper",
+  "hand", "requires", "strong", "moral", "principle", "prevent",
+  "deliberately", "stepping", "into", "street", "methodically",
+  "knocking", "peoples", "hats", "off", "then", "account", "high",
+  "time", "get", "sea", "soon", "possible",
+];
+
+const CODE_WORDS = [
+  "const", "let", "var", "function", "return", "import", "export",
+  "class", "interface", "type", "async", "await", "true", "false",
+  "null", "undefined", "if", "else", "for", "while", "switch", "case",
+  "break", "continue", "new", "this", "super", "extends", "implements",
+  "public", "private", "static", "readonly", "string", "number", "boolean",
+  "void", "any", "never", "array", "object", "map", "set", "promise",
+  "console", "error", "fetch", "data", "state", "props", "event",
+  "result", "value", "index", "length", "push", "pop", "filter", "map",
+  "reduce", "find", "some", "every", "sort", "join", "split", "slice",
+  "default", "module", "require", "resolve", "reject", "callback",
+  "handler", "listener", "render", "component", "element", "node",
+];
+
+const RANDOM_SENTENCES = [
+  "the quick brown fox jumps over the lazy dog",
+  "pack my box with five dozen liquor jugs",
+  "how vexingly quick daft zebras jump",
+  "the five boxing wizards jump quickly",
+  "sphinx of black quartz judge my vow",
+  "two driven jocks help fax my big quiz",
+  "the jay pig fox zebra and my wolves",
+  "blowzy night frumps vex quotient djinns",
+  "bright vixens jump dozy fowl quack",
+  "five quacking zephyrs jolt my wax bed",
+].flatMap(s => s.split(" "));
+
 export const LESSON_WORDS: Record<number, string[]> = {
   1: [
     "flask", "glad", "dash", "lads", "fad", "lass", "salad", "dad", "flags", "glass",
@@ -47,13 +92,13 @@ export const LESSON_WORDS: Record<number, string[]> = {
   2: [
     "quit", "quip", "trip", "riot", "poet", "tire", "wiry", "pout", "your", "tour",
     "rout", "pour", "type", "rope", "wore", "yore", "port", "euro", "zero", "oreo",
-    "prey", "pure", "true", "pyre", "writ", "writ", "trop", "prop", "prep", "wire",
-    "wirey", "towel", "tower", "power", "upper", "outer", "route", "trout", "tepoy",
+    "prey", "pure", "true", "pyre", "writ", "trop", "prop", "prep", "wire",
+    "tower", "power", "upper", "outer", "route", "trout",
   ],
   3: [
     "10", "20", "30", "40", "50", "60", "70", "80", "90", "100",
     "123", "456", "789", "2024", "2025", "1990", "3000", "500",
-    "1 in 4", "3 out of 5", "42 points", "top 10", "win by 2",
+    "42 points", "top 10", "win by 2",
     "score 95", "level 7", "room 404", "floor 3", "page 15",
     "10 words", "5 tests", "100 wpm", "99 percent", "7 days",
   ],
@@ -68,12 +113,11 @@ export const LESSON_WORDS: Record<number, string[]> = {
     "way", "even", "new", "want", "give", "day", "most", "us", "great",
   ],
   5: [
-    "hello, world!", "yes, please.", "no, thanks.", "wait; I'll check.",
+    "hello, world!", "yes, please.", "no, thanks.", "wait; check.",
     "it's done.", "she's here.", "they've left.", "we're ready.",
     "don't stop.", "can't quit.", "isn't it?", "won't work.",
-    "oh! really?", "wow, nice!", "yes? no!", "hmm... okay.",
+    "oh! really?", "wow, nice!", "hmm... okay.",
     "first, second, third.", "a, b, and c.", "ready, set, go!",
-    "type: fast, accurate, clean.",
   ],
   6: [
     "const x = 5;", "let name = '';", "if (x > 0) {}", "return true;",
@@ -81,6 +125,14 @@ export const LESSON_WORDS: Record<number, string[]> = {
     "console.log(x);", "import React", "export default", "async function",
     "await fetch()", "try { } catch", "throw new Error", "type Props = {}",
     "interface User", "const [a, b]", "({key: value})", "=> result",
+  ],
+  7: [
+    "zinc", "zone", "zoom", "zeal", "zero", "zap", "zag",
+    "clam", "clan", "clap", "claw", "clay", "clue",
+    "verb", "vibe", "view", "vine", "vow",
+    "name", "navy", "nab", "nag", "nap",
+    "beam", "bean", "beat", "bell", "best", "bite", "blow",
+    "moon", "mop", "mob", "mock", "moat", "moan",
   ],
 };
 
@@ -99,6 +151,24 @@ export function generateLessonWords(lessonId: number, count: number = 60): strin
     words.push(pool[Math.floor(Math.random() * pool.length)]);
   }
   return words;
+}
+
+export function generateCategoryWords(category: string, count: number = 80): string[] {
+  let pool: string[];
+  switch (category) {
+    case "literature":
+      pool = LITERATURE_WORDS;
+      break;
+    case "code":
+      pool = CODE_WORDS;
+      break;
+    case "random":
+      pool = RANDOM_SENTENCES;
+      break;
+    default:
+      pool = WORD_LIST;
+  }
+  return Array.from({ length: count }, () => pool[Math.floor(Math.random() * pool.length)]);
 }
 
 export function getLevel(wpm: number): string {
