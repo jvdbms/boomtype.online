@@ -54,7 +54,7 @@ const OS_STEPS: Record<string, { icon: typeof Monitor; label: string; color: str
   },
 };
 
-export default function Download() {
+export default function DownloadPage() {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);

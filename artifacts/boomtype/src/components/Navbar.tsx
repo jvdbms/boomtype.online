@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Zap, Menu, X, Crown, Star, Flame, Gamepad2, CreditCard, Download } from "lucide-react";
+import { Zap, Menu, X, Crown, Star, Flame, Gamepad2, Download, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getTotalXP, getStreak } from "@/lib/storage";
 
@@ -12,7 +12,7 @@ export default function Navbar() {
   const { count: streak } = getStreak();
 
   const navLinks = [
-    { href: "/",            label: "Home" },
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/test",        label: "Test" },
     { href: "/leaderboard", label: "Leaderboard" },
     { href: "/lessons",     label: "Lessons" },
@@ -22,7 +22,7 @@ export default function Navbar() {
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-full px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group shrink-0">
@@ -36,17 +36,14 @@ export default function Navbar() {
           </Link>
 
           {/* Nav Links */}
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden md:flex items-center gap-0.5">
             {navLinks.map((link) => {
               const Icon = link.icon;
+              const active = location === link.href || (link.href !== "/" && location.startsWith(link.href + "/"));
               return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${
-                    location === link.href || location.startsWith(link.href + "/")
-                      ? "bg-primary/15 text-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                <Link key={link.href} href={link.href}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 flex items-center gap-1.5 ${
+                    active ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                   }`}
                   data-testid={`nav-link-${link.label.toLowerCase()}`}
                 >
@@ -61,35 +58,29 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-2">
             {xp > 0 && (
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs font-bold">
-                <Star className="w-3 h-3 fill-yellow-400" />
-                {xp.toLocaleString()} XP
+                <Star className="w-3 h-3 fill-yellow-400" />{xp.toLocaleString()} XP
               </div>
             )}
             {streak > 0 && (
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-bold">
-                <Flame className="w-3 h-3" />
-                {streak}d streak
+                <Flame className="w-3 h-3" />{streak}d streak
               </div>
             )}
             <Link href="/download">
               <Button size="sm" variant="outline" className="border-border/60 hover:bg-white/5 gap-1.5 text-muted-foreground hover:text-foreground">
-                <Download className="w-3.5 h-3.5" />
-                Get App
+                <Download className="w-3.5 h-3.5" />Get App
               </Button>
             </Link>
             <Link href="/premium">
               <Button size="sm" className="bg-gradient-to-r from-primary to-accent text-white font-semibold shadow-lg hover:opacity-90 transition-opacity gap-1.5">
-                <Crown className="w-3.5 h-3.5" />
-                Go Premium
+                <Crown className="w-3.5 h-3.5" />Go Premium
               </Button>
             </Link>
           </div>
 
           {/* Mobile toggle */}
-          <button
-            className="md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
-            onClick={() => setIsOpen(!isOpen)}
-            data-testid="nav-mobile-toggle"
+          <button className="md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+            onClick={() => setIsOpen(!isOpen)} data-testid="nav-mobile-toggle"
           >
             {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -104,28 +95,23 @@ export default function Navbar() {
               <div className="flex gap-2 pb-2">
                 {xp > 0 && (
                   <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs font-bold">
-                    <Star className="w-3 h-3 fill-yellow-400" />
-                    {xp.toLocaleString()} XP
+                    <Star className="w-3 h-3 fill-yellow-400" />{xp.toLocaleString()} XP
                   </div>
                 )}
                 {streak > 0 && (
                   <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-bold">
-                    <Flame className="w-3 h-3" />
-                    {streak}d
+                    <Flame className="w-3 h-3" />{streak}d
                   </div>
                 )}
               </div>
             )}
             {navLinks.map((link) => {
               const Icon = link.icon;
+              const active = location === link.href || (link.href !== "/" && location.startsWith(link.href + "/"));
               return (
-                <Link
-                  key={link.href}
-                  href={link.href}
+                <Link key={link.href} href={link.href}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                    location === link.href || location.startsWith(link.href + "/")
-                      ? "bg-primary/15 text-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                    active ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                   }`}
                   onClick={() => setIsOpen(false)}
                 >
@@ -136,14 +122,12 @@ export default function Navbar() {
             })}
             <Link href="/download" onClick={() => setIsOpen(false)}>
               <Button variant="outline" className="w-full mt-2 border-border/60 gap-1.5 text-muted-foreground">
-                <Download className="w-3.5 h-3.5" />
-                Download Desktop App
+                <Download className="w-3.5 h-3.5" />Download Desktop App
               </Button>
             </Link>
             <Link href="/premium" onClick={() => setIsOpen(false)}>
               <Button className="w-full mt-1 bg-gradient-to-r from-primary to-accent text-white font-semibold gap-1.5">
-                <Crown className="w-3.5 h-3.5" />
-                Go Premium
+                <Crown className="w-3.5 h-3.5" />Go Premium
               </Button>
             </Link>
           </div>
