@@ -1,9 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, RefreshCw, CloudRain } from "lucide-react";
+import { ArrowLeft, RefreshCw, CloudRain, Trophy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WORD_LIST } from "@/lib/words";
+import { useGameSounds } from "@/hooks/useGameSounds";
+import { getNickname, setNickname } from "@/lib/storage";
+import { useSubmitGameScore, getGetGameLeaderboardQueryKey } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+
+const HIGH_SCORE_KEY = "boomtype_wordrain_hs";
 
 interface FallingWord {
   id: number;
@@ -24,6 +30,10 @@ export default function WordRain() {
   const [wave, setWave] = useState(1);
   const [gameState, setGameState] = useState<"idle" | "playing" | "over">("idle");
   const [destroyed, setDestroyed] = useState<number[]>([]);
+  const [highScore, setHighScore] = useState(() => parseInt(localStorage.getItem(HIGH_SCORE_KEY) || "0", 10));
+  const [newHighScore, setNewHighScore] = useState(false);
+  const [nicknameInput, setNicknameInput] = useState("");
+  const [scoreSubmitted, setScoreSubmitted] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const animRef = useRef<number>(0);
   const wordsRef = useRef<FallingWord[]>([]);
@@ -31,17 +41,37 @@ export default function WordRain() {
   const gameStateRef = useRef<"idle" | "playing" | "over">("idle");
   const waveRef = useRef(1);
   const livesRef = useRef(3);
+  const scoreRef = useRef(0);
+  const finalScoreRef = useRef(0);
+  const { playCorrect, playGameOver } = useGameSounds();
+  const queryClient = useQueryClient();
+  const submitGameScore = useSubmitGameScore();
 
   wordsRef.current = words;
   gameStateRef.current = gameState;
   waveRef.current = wave;
   livesRef.current = lives;
+  scoreRef.current = score;
 
   useEffect(() => {
     document.title = "Word Rain | BoomType Games";
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute("content", "Play Word Rain on BoomType — type falling words before they hit the ground. Fun typing game that improves speed and reaction time.");
   }, []);
+
+  const submitToLeaderboard = useCallback((finalScore: number, nick: string) => {
+    if (!nick.trim() || finalScore <= 0) return;
+    setNickname(nick.trim());
+    submitGameScore.mutate(
+      { data: { nickname: nick.trim(), game: "word-rain", score: finalScore } },
+      {
+        onSuccess: () => {
+          setScoreSubmitted(true);
+          queryClient.invalidateQueries({ queryKey: getGetGameLeaderboardQueryKey({ game: "word-rain" }) });
+        },
+      },
+    );
+  }, [submitGameScore, queryClient]);
 
   const spawnWord = useCallback(() => {
     const word = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
@@ -74,6 +104,20 @@ export default function WordRain() {
         if (newLives <= 0) {
           setGameState("over");
           gameStateRef.current = "over";
+          playGameOver();
+          const fs = scoreRef.current;
+          finalScoreRef.current = fs;
+          const prevBest = parseInt(localStorage.getItem(HIGH_SCORE_KEY) || "0", 10);
+          if (fs > prevBest) {
+            localStorage.setItem(HIGH_SCORE_KEY, fs.toString());
+            setHighScore(fs);
+            setNewHighScore(true);
+          }
+          const storedNick = getNickname();
+          if (storedNick) {
+            setNicknameInput(storedNick);
+            setTimeout(() => submitToLeaderboard(fs, storedNick), 0);
+          }
         } else {
           setLives(newLives);
         }
@@ -82,7 +126,7 @@ export default function WordRain() {
     });
 
     animRef.current = requestAnimationFrame(gameLoop);
-  }, [spawnWord]);
+  }, [spawnWord, playGameOver, submitToLeaderboard]);
 
   const startGame = useCallback(() => {
     wordId = 0;
@@ -90,9 +134,13 @@ export default function WordRain() {
     setWords([]);
     setInput("");
     setScore(0);
+    scoreRef.current = 0;
     setLives(3);
     setWave(1);
     setDestroyed([]);
+    setNewHighScore(false);
+    setScoreSubmitted(false);
+    setNicknameInput(getNickname());
     setGameState("playing");
     gameStateRef.current = "playing";
     livesRef.current = 3;
@@ -117,16 +165,21 @@ export default function WordRain() {
 
     const match = wordsRef.current.find(w => !w.matched && w.word === val.trim());
     if (match) {
+      playCorrect();
       setWords(prev => prev.map(w => w.id === match.id ? { ...w, matched: true } : w));
       setDestroyed(prev => [...prev, match.id]);
-      setScore(s => s + 1);
+      setScore(s => { const ns = s + 1; scoreRef.current = ns; return ns; });
       setInput("");
       setTimeout(() => {
         setWords(prev => prev.filter(w => w.id !== match.id));
         setDestroyed(prev => prev.filter(id => id !== match.id));
       }, 300);
     }
-  }, []);
+  }, [playCorrect]);
+
+  const handleManualSubmit = useCallback(() => {
+    submitToLeaderboard(finalScoreRef.current, nicknameInput);
+  }, [submitToLeaderboard, nicknameInput]);
 
   return (
     <div className="min-h-screen py-4 px-4">
@@ -152,7 +205,12 @@ export default function WordRain() {
               <div className="text-center">
                 <div className="text-5xl mb-4">🌧️</div>
                 <h2 className="text-2xl font-black mb-2">Word Rain</h2>
-                <p className="text-muted-foreground mb-6 max-w-xs">Words fall from the sky. Type them before they hit the ground. Miss 3 words — game over!</p>
+                <p className="text-muted-foreground mb-4 max-w-xs">Words fall from the sky. Type them before they hit the ground. Miss 3 words — game over!</p>
+                {highScore > 0 && (
+                  <p className="text-blue-400 font-bold mb-4 flex items-center justify-center gap-1">
+                    <Trophy className="w-4 h-4" />Best: {highScore} words
+                  </p>
+                )}
                 <Button onClick={startGame} className="bg-primary text-white font-bold px-8">
                   Start Game
                 </Button>
@@ -161,11 +219,41 @@ export default function WordRain() {
           )}
           {gameState === "over" && (
             <div className="absolute inset-0 flex items-center justify-center bg-card/90 backdrop-blur-sm z-20">
-              <div className="text-center">
+              <div className="text-center px-6">
                 <div className="text-5xl mb-4">💀</div>
                 <h2 className="text-2xl font-black mb-1">Game Over!</h2>
                 <p className="text-muted-foreground mb-2">You reached Wave {wave}</p>
-                <p className="text-4xl font-black text-primary mb-6">{score} words</p>
+                <p className="text-4xl font-black text-primary mb-1">{finalScoreRef.current} words</p>
+                {newHighScore && finalScoreRef.current > 0 && (
+                  <p className="text-yellow-400 font-bold mb-2 text-sm">🏆 New High Score!</p>
+                )}
+                {!newHighScore && highScore > 0 && (
+                  <p className="text-muted-foreground mb-2 text-sm">Best: {highScore} words</p>
+                )}
+                {scoreSubmitted ? (
+                  <p className="text-green-400 text-sm font-semibold mb-3 flex items-center justify-center gap-1">
+                    <Check className="w-4 h-4" /> Score saved to leaderboard
+                  </p>
+                ) : (
+                  <div className="flex gap-2 mb-3 mt-2">
+                    <input
+                      value={nicknameInput}
+                      onChange={e => setNicknameInput(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && handleManualSubmit()}
+                      className="flex-1 px-3 py-1.5 rounded-lg bg-card border border-blue-500/30 text-foreground text-sm focus:outline-none focus:border-primary min-w-0"
+                      placeholder="Your nickname"
+                      maxLength={20}
+                    />
+                    <Button
+                      onClick={handleManualSubmit}
+                      disabled={!nicknameInput.trim() || submitGameScore.isPending}
+                      size="sm"
+                      className="bg-primary text-white shrink-0"
+                    >
+                      {submitGameScore.isPending ? "…" : "Submit"}
+                    </Button>
+                  </div>
+                )}
                 <div className="flex gap-3 justify-center">
                   <Button onClick={startGame} className="bg-primary text-white font-bold gap-2">
                     <RefreshCw className="w-4 h-4" />

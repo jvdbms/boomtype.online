@@ -82,6 +82,34 @@ export const GetRecentActivityResponse = zod.array(
 );
 
 /**
+ * @summary Submit a mini-game score
+ */
+export const SubmitGameScoreBody = zod.object({
+  nickname: zod.string(),
+  game: zod.enum(["word-rain", "zombie-attack", "speed-burst"]),
+  score: zod.number(),
+});
+
+/**
+ * @summary Get mini-game leaderboard for a specific game
+ */
+export const getGameLeaderboardQueryLimitDefault = 10;
+
+export const GetGameLeaderboardQueryParams = zod.object({
+  game: zod.enum(["word-rain", "zombie-attack", "speed-burst"]),
+  limit: zod.coerce.number().default(getGameLeaderboardQueryLimitDefault),
+});
+
+export const GetGameLeaderboardResponseItem = zod.object({
+  rank: zod.number(),
+  nickname: zod.string(),
+  score: zod.number(),
+});
+export const GetGameLeaderboardResponse = zod.array(
+  GetGameLeaderboardResponseItem,
+);
+
+/**
  * @summary Get user profile and personal bests
  */
 export const GetUserProfileParams = zod.object({

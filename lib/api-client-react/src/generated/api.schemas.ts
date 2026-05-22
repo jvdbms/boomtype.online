@@ -57,6 +57,35 @@ export interface UserProfile {
   recentScores: Score[];
 }
 
+export type SubmitGameScoreBodyGame =
+  (typeof SubmitGameScoreBodyGame)[keyof typeof SubmitGameScoreBodyGame];
+
+export const SubmitGameScoreBodyGame = {
+  "word-rain": "word-rain",
+  "zombie-attack": "zombie-attack",
+  "speed-burst": "speed-burst",
+} as const;
+
+export interface SubmitGameScoreBody {
+  nickname: string;
+  game: SubmitGameScoreBodyGame;
+  score: number;
+}
+
+export interface GameScore {
+  id: number;
+  nickname: string;
+  game: string;
+  score: number;
+  createdAt: string;
+}
+
+export interface GameLeaderboardEntry {
+  rank: number;
+  nickname: string;
+  score: number;
+}
+
 export interface ErrorResponse {
   error: string;
 }
@@ -78,3 +107,17 @@ export const GetLeaderboardPeriod = {
 export type GetRecentActivityParams = {
   limit?: number;
 };
+
+export type GetGameLeaderboardParams = {
+  game: GetGameLeaderboardGame;
+  limit?: number;
+};
+
+export type GetGameLeaderboardGame =
+  (typeof GetGameLeaderboardGame)[keyof typeof GetGameLeaderboardGame];
+
+export const GetGameLeaderboardGame = {
+  "word-rain": "word-rain",
+  "zombie-attack": "zombie-attack",
+  "speed-burst": "speed-burst",
+} as const;

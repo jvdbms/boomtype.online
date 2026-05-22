@@ -112,6 +112,50 @@ paths:
                 items:
                   $ref: "#/components/schemas/Score"
 
+  /scores/games:
+    post:
+      operationId: submitGameScore
+      tags: [scores]
+      summary: Submit a mini-game score
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitGameScoreBody"
+      responses:
+        "201":
+          description: Game score submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameScore"
+    get:
+      operationId: getGameLeaderboard
+      tags: [leaderboard]
+      summary: Get mini-game leaderboard for a specific game
+      parameters:
+        - name: game
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [word-rain, zombie-attack, speed-burst]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Game leaderboard entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GameLeaderboardEntry"
+
   /users/{nickname}:
     get:
       operationId: getUserProfile
@@ -271,6 +315,56 @@ components:
         - xp
         - streak
         - recentScores
+
+    SubmitGameScoreBody:
+      type: object
+      properties:
+        nickname:
+          type: string
+        game:
+          type: string
+          enum: [word-rain, zombie-attack, speed-burst]
+        score:
+          type: integer
+      required:
+        - nickname
+        - game
+        - score
+
+    GameScore:
+      type: object
+      properties:
+        id:
+          type: integer
+        nickname:
+          type: string
+        game:
+          type: string
+        score:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - nickname
+        - game
+        - score
+        - createdAt
+
+    GameLeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        nickname:
+          type: string
+        score:
+          type: integer
+      required:
+        - rank
+        - nickname
+        - score
 
     ErrorResponse:
       type: object

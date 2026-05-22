@@ -1,9 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, RefreshCw, Sword, Shield } from "lucide-react";
+import { ArrowLeft, RefreshCw, Sword, Shield, Trophy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WORD_LIST } from "@/lib/words";
+import { useGameSounds } from "@/hooks/useGameSounds";
+import { getNickname, setNickname } from "@/lib/storage";
+import { useSubmitGameScore, getGetGameLeaderboardQueryKey } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+
+const HIGH_SCORE_KEY = "boomtype_zombie_hs";
 
 interface Zombie {
   id: number;
@@ -26,6 +32,10 @@ export default function ZombieAttack() {
   const [wave, setWave] = useState(1);
   const [gameState, setGameState] = useState<"idle" | "playing" | "over">("idle");
   const [killedIds, setKilledIds] = useState<number[]>([]);
+  const [highScore, setHighScore] = useState(() => parseInt(localStorage.getItem(HIGH_SCORE_KEY) || "0", 10));
+  const [newHighScore, setNewHighScore] = useState(false);
+  const [nicknameInput, setNicknameInput] = useState("");
+  const [scoreSubmitted, setScoreSubmitted] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const animRef = useRef<number>(0);
   const zombiesRef = useRef<Zombie[]>([]);
@@ -33,6 +43,11 @@ export default function ZombieAttack() {
   const waveRef = useRef(1);
   const lastSpawnRef = useRef(0);
   const playerHpRef = useRef(100);
+  const scoreRef = useRef(0);
+  const finalScoreRef = useRef(0);
+  const { playCorrect, playGameOver } = useGameSounds();
+  const queryClient = useQueryClient();
+  const submitGameScore = useSubmitGameScore();
 
   zombiesRef.current = zombies;
 
@@ -41,6 +56,20 @@ export default function ZombieAttack() {
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute("content", "Play Zombie Attack on BoomType — type zombie word labels to destroy them before they reach your base. Typing survival game with wave system.");
   }, []);
+
+  const submitToLeaderboard = useCallback((finalScore: number, nick: string) => {
+    if (!nick.trim() || finalScore <= 0) return;
+    setNickname(nick.trim());
+    submitGameScore.mutate(
+      { data: { nickname: nick.trim(), game: "zombie-attack", score: finalScore } },
+      {
+        onSuccess: () => {
+          setScoreSubmitted(true);
+          queryClient.invalidateQueries({ queryKey: getGetGameLeaderboardQueryKey({ game: "zombie-attack" }) });
+        },
+      },
+    );
+  }, [submitGameScore, queryClient]);
 
   const spawnZombie = useCallback(() => {
     const word = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
@@ -77,6 +106,20 @@ export default function ZombieAttack() {
         if (newHp <= 0) {
           setGameState("over");
           gameStateRef.current = "over";
+          playGameOver();
+          const fs = scoreRef.current;
+          finalScoreRef.current = fs;
+          const prevBest = parseInt(localStorage.getItem(HIGH_SCORE_KEY) || "0", 10);
+          if (fs > prevBest) {
+            localStorage.setItem(HIGH_SCORE_KEY, fs.toString());
+            setHighScore(fs);
+            setNewHighScore(true);
+          }
+          const storedNick = getNickname();
+          if (storedNick) {
+            setNicknameInput(storedNick);
+            setTimeout(() => submitToLeaderboard(fs, storedNick), 0);
+          }
         }
         return updated.filter(z => !(!z.dead && z.y >= 78));
       }
@@ -84,7 +127,7 @@ export default function ZombieAttack() {
     });
 
     animRef.current = requestAnimationFrame(gameLoop);
-  }, [spawnZombie]);
+  }, [spawnZombie, playGameOver, submitToLeaderboard]);
 
   const startGame = useCallback(() => {
     zombieId = 0;
@@ -92,11 +135,15 @@ export default function ZombieAttack() {
     setZombies([]);
     setInput("");
     setScore(0);
+    scoreRef.current = 0;
     setPlayerHp(100);
     playerHpRef.current = 100;
     setWave(1);
     waveRef.current = 1;
     setKilledIds([]);
+    setNewHighScore(false);
+    setScoreSubmitted(false);
+    setNicknameInput(getNickname());
     setGameState("playing");
     gameStateRef.current = "playing";
     animRef.current = requestAnimationFrame(gameLoop);
@@ -122,8 +169,9 @@ export default function ZombieAttack() {
       for (const z of sorted) {
         if (z.word.startsWith(val.trim()) && val.trim().length > 0) {
           if (z.word === val.trim()) {
+            playCorrect();
             setKilledIds(k => [...k, z.id]);
-            setScore(s => s + 1);
+            setScore(s => { const ns = s + 1; scoreRef.current = ns; return ns; });
             setTimeout(() => {
               setZombies(p => p.filter(zz => zz.id !== z.id));
               setKilledIds(k => k.filter(id => id !== z.id));
@@ -137,7 +185,11 @@ export default function ZombieAttack() {
       }
       return prev.map(z => ({ ...z, typed: "" }));
     });
-  }, []);
+  }, [playCorrect]);
+
+  const handleManualSubmit = useCallback(() => {
+    submitToLeaderboard(finalScoreRef.current, nicknameInput);
+  }, [submitToLeaderboard, nicknameInput]);
 
   return (
     <div className="min-h-screen py-4 px-4">
@@ -175,7 +227,12 @@ export default function ZombieAttack() {
               <div className="text-center">
                 <div className="text-5xl mb-4">🧟</div>
                 <h2 className="text-2xl font-black mb-2">Zombie Attack</h2>
-                <p className="text-muted-foreground mb-6 max-w-xs">Zombies march toward you. Type their word labels to destroy them before they reach your base!</p>
+                <p className="text-muted-foreground mb-4 max-w-xs">Zombies march toward you. Type their word labels to destroy them before they reach your base!</p>
+                {highScore > 0 && (
+                  <p className="text-red-400 font-bold mb-4 flex items-center justify-center gap-1">
+                    <Trophy className="w-4 h-4" />Best: {highScore} kills
+                  </p>
+                )}
                 <Button onClick={startGame} className="bg-red-600 hover:bg-red-700 text-white font-bold px-8">
                   Survive!
                 </Button>
@@ -184,10 +241,40 @@ export default function ZombieAttack() {
           )}
           {gameState === "over" && (
             <div className="absolute inset-0 flex items-center justify-center bg-card/90 backdrop-blur-sm z-20">
-              <div className="text-center">
+              <div className="text-center px-6">
                 <div className="text-5xl mb-4">💀</div>
                 <h2 className="text-2xl font-black mb-1">You Survived Until Wave {wave}</h2>
-                <p className="text-4xl font-black text-red-400 mb-6">{score} kills</p>
+                <p className="text-4xl font-black text-red-400 mb-1">{finalScoreRef.current} kills</p>
+                {newHighScore && finalScoreRef.current > 0 && (
+                  <p className="text-yellow-400 font-bold mb-2 text-sm">🏆 New High Score!</p>
+                )}
+                {!newHighScore && highScore > 0 && (
+                  <p className="text-muted-foreground mb-2 text-sm">Best: {highScore} kills</p>
+                )}
+                {scoreSubmitted ? (
+                  <p className="text-green-400 text-sm font-semibold mb-3 flex items-center justify-center gap-1">
+                    <Check className="w-4 h-4" /> Score saved to leaderboard
+                  </p>
+                ) : (
+                  <div className="flex gap-2 mb-3 mt-2">
+                    <input
+                      value={nicknameInput}
+                      onChange={e => setNicknameInput(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && handleManualSubmit()}
+                      className="flex-1 px-3 py-1.5 rounded-lg bg-card border border-red-500/30 text-foreground text-sm focus:outline-none focus:border-red-500 min-w-0"
+                      placeholder="Your nickname"
+                      maxLength={20}
+                    />
+                    <Button
+                      onClick={handleManualSubmit}
+                      disabled={!nicknameInput.trim() || submitGameScore.isPending}
+                      size="sm"
+                      className="bg-red-600 hover:bg-red-700 text-white shrink-0"
+                    >
+                      {submitGameScore.isPending ? "…" : "Submit"}
+                    </Button>
+                  </div>
+                )}
                 <div className="flex gap-3 justify-center">
                   <Button onClick={startGame} className="bg-red-600 hover:bg-red-700 text-white font-bold gap-2">
                     <RefreshCw className="w-4 h-4" />

@@ -18,12 +18,16 @@ import type {
 
 import type {
   ErrorResponse,
+  GameLeaderboardEntry,
+  GameScore,
+  GetGameLeaderboardParams,
   GetLeaderboardParams,
   GetRecentActivityParams,
   HealthStatus,
   LeaderboardEntry,
   Score,
   StatsSummary,
+  SubmitGameScoreBody,
   SubmitScoreBody,
   UserProfile,
 } from "./api.schemas";
@@ -456,6 +460,189 @@ export function useGetRecentActivity<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetRecentActivityQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Submit a mini-game score
+ */
+export const getSubmitGameScoreUrl = () => {
+  return `/api/scores/games`;
+};
+
+export const submitGameScore = async (
+  submitGameScoreBody: SubmitGameScoreBody,
+  options?: RequestInit,
+): Promise<GameScore> => {
+  return customFetch<GameScore>(getSubmitGameScoreUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(submitGameScoreBody),
+  });
+};
+
+export const getSubmitGameScoreMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitGameScore>>,
+    TError,
+    { data: BodyType<SubmitGameScoreBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof submitGameScore>>,
+  TError,
+  { data: BodyType<SubmitGameScoreBody> },
+  TContext
+> => {
+  const mutationKey = ["submitGameScore"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof submitGameScore>>,
+    { data: BodyType<SubmitGameScoreBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return submitGameScore(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubmitGameScoreMutationResult = NonNullable<
+  Awaited<ReturnType<typeof submitGameScore>>
+>;
+export type SubmitGameScoreMutationBody = BodyType<SubmitGameScoreBody>;
+export type SubmitGameScoreMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Submit a mini-game score
+ */
+export const useSubmitGameScore = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof submitGameScore>>,
+    TError,
+    { data: BodyType<SubmitGameScoreBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof submitGameScore>>,
+  TError,
+  { data: BodyType<SubmitGameScoreBody> },
+  TContext
+> => {
+  return useMutation(getSubmitGameScoreMutationOptions(options));
+};
+
+/**
+ * @summary Get mini-game leaderboard for a specific game
+ */
+export const getGetGameLeaderboardUrl = (params: GetGameLeaderboardParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/scores/games?${stringifiedParams}`
+    : `/api/scores/games`;
+};
+
+export const getGameLeaderboard = async (
+  params: GetGameLeaderboardParams,
+  options?: RequestInit,
+): Promise<GameLeaderboardEntry[]> => {
+  return customFetch<GameLeaderboardEntry[]>(getGetGameLeaderboardUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetGameLeaderboardQueryKey = (
+  params?: GetGameLeaderboardParams,
+) => {
+  return [`/api/scores/games`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetGameLeaderboardQueryOptions = <
+  TData = Awaited<ReturnType<typeof getGameLeaderboard>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetGameLeaderboardParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getGameLeaderboard>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetGameLeaderboardQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getGameLeaderboard>>
+  > = ({ signal }) => getGameLeaderboard(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getGameLeaderboard>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetGameLeaderboardQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getGameLeaderboard>>
+>;
+export type GetGameLeaderboardQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get mini-game leaderboard for a specific game
+ */
+
+export function useGetGameLeaderboard<
+  TData = Awaited<ReturnType<typeof getGameLeaderboard>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetGameLeaderboardParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getGameLeaderboard>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetGameLeaderboardQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

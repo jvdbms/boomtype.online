@@ -1,8 +1,20 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { Gamepad2, CloudRain, Sword, Zap, Star, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+const HIGH_SCORE_KEYS: Record<string, string> = {
+  "word-rain": "boomtype_wordrain_hs",
+  "zombie-attack": "boomtype_zombie_hs",
+  "speed-burst": "boomtype_speedburst_hs",
+};
+
+const SCORE_UNIT: Record<string, string> = {
+  "word-rain": "words",
+  "zombie-attack": "kills",
+  "speed-burst": "pts",
+};
 
 const GAMES = [
   {
@@ -44,10 +56,19 @@ const GAMES = [
 ];
 
 export default function Games() {
+  const [highScores, setHighScores] = useState<Record<string, number>>({});
+
   useEffect(() => {
     document.title = "Typing Games | BoomType — Play & Improve";
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute("content", "Play fun typing games on BoomType. Word Rain, Zombie Attack, and Speed Burst — improve your WPM while having fun!");
+
+    const scores: Record<string, number> = {};
+    for (const [gameId, key] of Object.entries(HIGH_SCORE_KEYS)) {
+      const val = parseInt(localStorage.getItem(key) || "0", 10);
+      if (val > 0) scores[gameId] = val;
+    }
+    setHighScores(scores);
   }, []);
 
   return (
@@ -65,6 +86,8 @@ export default function Games() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           {GAMES.map((game, i) => {
             const Icon = game.icon;
+            const hs = highScores[game.id];
+            const unit = SCORE_UNIT[game.id];
             return (
               <motion.div
                 key={game.id}
@@ -80,7 +103,13 @@ export default function Games() {
                   </span>
                 </div>
                 <h2 className={`text-xl font-black mb-2 ${game.textColor}`}>{game.title}</h2>
-                <p className="text-sm text-muted-foreground leading-relaxed mb-6 flex-1">{game.description}</p>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4 flex-1">{game.description}</p>
+                {hs > 0 && (
+                  <div className={`flex items-center gap-1.5 text-xs font-bold mb-3 ${game.textColor}`}>
+                    <Trophy className="w-3.5 h-3.5" />
+                    Best: {hs} {unit}
+                  </div>
+                )}
                 <Link href={`/games/${game.id}`}>
                   <Button className={`w-full bg-gradient-to-r from-primary to-accent text-white font-semibold gap-2`}>
                     <Icon className="w-4 h-4" />
