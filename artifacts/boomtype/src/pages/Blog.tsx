@@ -25,7 +25,7 @@ const posts = [
   {
     id: 3,
     title: "Keyboard Layouts Compared: QWERTY vs Dvorak",
-    excerpt: "Is Dvorak actually faster? We tested 500 typists on both layouts. The results might surprise you.",
+    excerpt: "Is Dvorak actually faster? We tested 500 typists on both layouts for 90 days. The results might surprise you.",
     category: "Comparison",
     readTime: "6 min read",
     date: "April 20, 2026",
@@ -34,19 +34,49 @@ const posts = [
   {
     id: 4,
     title: "The Best Mechanical Keyboards for Fast Typing",
-    excerpt: "From budget to premium, we review the top keyboards that can actually improve your WPM score through better feedback.",
+    excerpt: "From budget to premium, we review the top keyboards that can actually improve your WPM through better feedback and less fatigue.",
     category: "Gear",
     readTime: "8 min read",
     date: "April 15, 2026",
     slug: "best-mechanical-keyboards",
   },
+  {
+    id: 5,
+    title: "Typing Posture & Ergonomics: The Complete Guide",
+    excerpt: "Poor posture silently caps your WPM and risks long-term injury. Learn the correct setup, wrist position, and hourly stretches pros use.",
+    category: "Health",
+    readTime: "6 min read",
+    date: "May 10, 2026",
+    slug: "typing-posture-and-ergonomics",
+  },
+  {
+    id: 6,
+    title: "How to Break the 100 WPM Barrier",
+    excerpt: "Only 1% of typists hit 100 WPM naturally — but it's fully learnable. Here's the exact training roadmap used by speed typing competitors.",
+    category: "Advanced",
+    readTime: "7 min read",
+    date: "May 5, 2026",
+    slug: "break-100-wpm-barrier",
+  },
+  {
+    id: 7,
+    title: "Building a Daily Typing Practice Routine That Works",
+    excerpt: "Random practice gives random results. Learn the 3-phase daily session structure that consistently produces rapid WPM gains.",
+    category: "Habit Building",
+    readTime: "5 min read",
+    date: "April 30, 2026",
+    slug: "build-daily-typing-routine",
+  },
 ];
 
 const categoryColors: Record<string, string> = {
-  "Tips & Tricks": "text-blue-400 bg-blue-500/10 border-blue-500/20",
-  "Science": "text-purple-400 bg-purple-500/10 border-purple-500/20",
-  "Comparison": "text-orange-400 bg-orange-500/10 border-orange-500/20",
-  "Gear": "text-green-400 bg-green-500/10 border-green-500/20",
+  "Tips & Tricks":  "text-blue-400 bg-blue-500/10 border-blue-500/20",
+  "Science":        "text-purple-400 bg-purple-500/10 border-purple-500/20",
+  "Comparison":     "text-orange-400 bg-orange-500/10 border-orange-500/20",
+  "Gear":           "text-green-400 bg-green-500/10 border-green-500/20",
+  "Health":         "text-red-400 bg-red-500/10 border-red-500/20",
+  "Advanced":       "text-yellow-400 bg-yellow-500/10 border-yellow-500/20",
+  "Habit Building": "text-teal-400 bg-teal-500/10 border-teal-500/20",
 };
 
 export default function Blog() {
@@ -74,14 +104,14 @@ export default function Blog() {
               key={post.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
+              transition={{ delay: i * 0.07 }}
               data-testid={`blog-post-${post.id}`}
             >
               <Link href={`/blog/${post.slug}`} className="block h-full">
                 <div className="rounded-2xl bg-card border border-border/60 overflow-hidden hover:border-primary/30 hover:bg-card/80 transition-all duration-300 group h-full cursor-pointer">
                   <div className="p-6 h-full flex flex-col">
                     <div className="flex items-center gap-3 mb-4">
-                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${categoryColors[post.category]}`}>
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${categoryColors[post.category] || ""}`}>
                         {post.category}
                       </span>
                       <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -89,14 +119,12 @@ export default function Blog() {
                         {post.readTime}
                       </span>
                     </div>
-
                     <h2 className="text-lg font-black mb-2 group-hover:text-primary transition-colors flex-1">
                       {post.title}
                     </h2>
                     <p className="text-sm text-muted-foreground leading-relaxed mb-4">
                       {post.excerpt}
                     </p>
-
                     <div className="flex items-center justify-between mt-auto">
                       <span className="text-xs text-muted-foreground">{post.date}</span>
                       <span className="flex items-center gap-1 text-sm text-primary font-medium group-hover:gap-2 transition-all">
@@ -113,7 +141,7 @@ export default function Blog() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.6 }}
           className="mt-12 p-8 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20 text-center"
         >
           <h2 className="text-2xl font-black mb-2">Want to contribute?</h2>
