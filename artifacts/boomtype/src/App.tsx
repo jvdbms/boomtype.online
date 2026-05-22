@@ -25,6 +25,11 @@ import Games from "@/pages/Games";
 import WordRain from "@/pages/WordRain";
 import ZombieAttack from "@/pages/ZombieAttack";
 import SpeedBurst from "@/pages/SpeedBurst";
+import BubblePop from "@/pages/BubblePop";
+import PipeRun from "@/pages/PipeRun";
+import WordTetris from "@/pages/WordTetris";
+import AlphabetRace from "@/pages/AlphabetRace";
+import CloudRace from "@/pages/CloudRace";
 import Payment from "@/pages/Payment";
 import NotFound from "@/pages/not-found";
 
@@ -61,6 +66,11 @@ function Router() {
           <Route path="/games/word-rain" component={WordRain} />
           <Route path="/games/zombie-attack" component={ZombieAttack} />
           <Route path="/games/speed-burst" component={SpeedBurst} />
+          <Route path="/games/bubble-pop" component={BubblePop} />
+          <Route path="/games/pipe-run" component={PipeRun} />
+          <Route path="/games/word-tetris" component={WordTetris} />
+          <Route path="/games/alphabet-race" component={AlphabetRace} />
+          <Route path="/games/cloud-race" component={CloudRace} />
           <Route path="/payment" component={Payment} />
           <Route component={NotFound} />
         </Switch>
