@@ -1,0 +1,23 @@
+{
+  "name": "BoomType — Typing Master",
+  "short_name": "BoomType",
+  "description": "The world-class typing tutor. Real-time WPM tests, lessons, games, leaderboards and certificates.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080c1a",
+  "theme_color": "#3b82f6",
+  "orientation": "landscape-primary",
+  "categories": ["education", "productivity", "games"],
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "screenshots": [
+    { "src": "/opengraph.jpg", "sizes": "1200x630", "type": "image/jpeg", "form_factor": "wide", "label": "BoomType Desktop" }
+  ],
+  "shortcuts": [
+    { "name": "Typing Test",  "url": "/test",        "description": "Start a typing speed test" },
+    { "name": "Lessons",      "url": "/lessons",     "description": "Practice with structured lessons" },
+    { "name": "Games",        "url": "/games",       "description": "Play typing games" },
+    { "name": "Leaderboard",  "url": "/leaderboard", "description": "View global rankings" }
+  ]
+}

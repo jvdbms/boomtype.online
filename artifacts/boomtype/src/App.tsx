@@ -30,6 +30,7 @@ import PipeRun from "@/pages/PipeRun";
 import WordTetris from "@/pages/WordTetris";
 import AlphabetRace from "@/pages/AlphabetRace";
 import CloudRace from "@/pages/CloudRace";
+import Download from "@/pages/Download";
 import Payment from "@/pages/Payment";
 import NotFound from "@/pages/not-found";
 
@@ -71,6 +72,7 @@ function Router() {
           <Route path="/games/word-tetris" component={WordTetris} />
           <Route path="/games/alphabet-race" component={AlphabetRace} />
           <Route path="/games/cloud-race" component={CloudRace} />
+          <Route path="/download" component={Download} />
           <Route path="/payment" component={Payment} />
           <Route component={NotFound} />
         </Switch>

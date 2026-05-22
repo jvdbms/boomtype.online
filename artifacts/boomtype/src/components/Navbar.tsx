@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Zap, Menu, X, Crown, Star, Flame, Gamepad2, CreditCard } from "lucide-react";
+import { Zap, Menu, X, Crown, Star, Flame, Gamepad2, CreditCard, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getTotalXP, getStreak } from "@/lib/storage";
 
@@ -12,12 +12,12 @@ export default function Navbar() {
   const { count: streak } = getStreak();
 
   const navLinks = [
-    { href: "/", label: "Home" },
-    { href: "/test", label: "Test" },
+    { href: "/",            label: "Home" },
+    { href: "/test",        label: "Test" },
     { href: "/leaderboard", label: "Leaderboard" },
-    { href: "/lessons", label: "Lessons" },
-    { href: "/games", label: "Games", icon: Gamepad2 },
-    { href: "/blog", label: "Blog" },
+    { href: "/lessons",     label: "Lessons" },
+    { href: "/games",       label: "Games", icon: Gamepad2 },
+    { href: "/blog",        label: "Blog" },
   ];
 
   return (
@@ -71,10 +71,10 @@ export default function Navbar() {
                 {streak}d streak
               </div>
             )}
-            <Link href="/payment">
+            <Link href="/download">
               <Button size="sm" variant="outline" className="border-border/60 hover:bg-white/5 gap-1.5 text-muted-foreground hover:text-foreground">
-                <CreditCard className="w-3.5 h-3.5" />
-                Pay
+                <Download className="w-3.5 h-3.5" />
+                Get App
               </Button>
             </Link>
             <Link href="/premium">
@@ -134,10 +134,10 @@ export default function Navbar() {
                 </Link>
               );
             })}
-            <Link href="/payment" onClick={() => setIsOpen(false)}>
+            <Link href="/download" onClick={() => setIsOpen(false)}>
               <Button variant="outline" className="w-full mt-2 border-border/60 gap-1.5 text-muted-foreground">
-                <CreditCard className="w-3.5 h-3.5" />
-                Pay via JazzCash / EasyPaisa
+                <Download className="w-3.5 h-3.5" />
+                Download Desktop App
               </Button>
             </Link>
             <Link href="/premium" onClick={() => setIsOpen(false)}>
