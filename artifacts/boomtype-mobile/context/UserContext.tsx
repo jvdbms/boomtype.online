@@ -7,6 +7,8 @@ const KEYS = {
   STREAK_COUNT: "bt_streak_count",
   STREAK_DATE: "bt_streak_date",
   HIGH_SCORE: "bt_high_score",
+  HAPTICS_ENABLED: "bt_haptics_enabled",
+  SOUND_ENABLED: "bt_sound_enabled",
 };
 
 interface UserState {
@@ -14,6 +16,8 @@ interface UserState {
   totalXP: number;
   streak: number;
   highScore: number;
+  hapticsEnabled: boolean;
+  soundEnabled: boolean;
   loaded: boolean;
 }
 
@@ -22,6 +26,8 @@ interface UserContextType extends UserState {
   addXP: (xp: number) => Promise<void>;
   updateStreak: () => Promise<number>;
   setHighScore: (wpm: number) => Promise<void>;
+  setHapticsEnabled: (enabled: boolean) => Promise<void>;
+  setSoundEnabled: (enabled: boolean) => Promise<void>;
   resetProgress: () => Promise<void>;
 }
 
@@ -33,17 +39,29 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     totalXP: 0,
     streak: 0,
     highScore: 0,
+    hapticsEnabled: true,
+    soundEnabled: true,
     loaded: false,
   });
 
   useEffect(() => {
     (async () => {
-      const [nickname, totalXP, streakCount, streakDate, highScore] = await Promise.all([
+      const [
+        nickname,
+        totalXP,
+        streakCount,
+        streakDate,
+        highScore,
+        hapticsEnabled,
+        soundEnabled,
+      ] = await Promise.all([
         AsyncStorage.getItem(KEYS.NICKNAME),
         AsyncStorage.getItem(KEYS.TOTAL_XP),
         AsyncStorage.getItem(KEYS.STREAK_COUNT),
         AsyncStorage.getItem(KEYS.STREAK_DATE),
         AsyncStorage.getItem(KEYS.HIGH_SCORE),
+        AsyncStorage.getItem(KEYS.HAPTICS_ENABLED),
+        AsyncStorage.getItem(KEYS.SOUND_ENABLED),
       ]);
 
       const today = new Date().toDateString();
@@ -58,6 +76,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         totalXP: parseInt(totalXP ?? "0", 10),
         streak: currentStreak,
         highScore: parseFloat(highScore ?? "0"),
+        hapticsEnabled: hapticsEnabled === null ? true : hapticsEnabled === "1",
+        soundEnabled: soundEnabled === null ? true : soundEnabled === "1",
         loaded: true,
       });
     })();
@@ -105,6 +125,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const setHapticsEnabled = useCallback(async (enabled: boolean) => {
+    await AsyncStorage.setItem(KEYS.HAPTICS_ENABLED, enabled ? "1" : "0");
+    setState((s) => ({ ...s, hapticsEnabled: enabled }));
+  }, []);
+
+  const setSoundEnabled = useCallback(async (enabled: boolean) => {
+    await AsyncStorage.setItem(KEYS.SOUND_ENABLED, enabled ? "1" : "0");
+    setState((s) => ({ ...s, soundEnabled: enabled }));
+  }, []);
+
   const resetProgress = useCallback(async () => {
     await AsyncStorage.multiRemove([
       KEYS.NICKNAME,
@@ -113,17 +143,30 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       KEYS.STREAK_DATE,
       KEYS.HIGH_SCORE,
     ]);
-    setState({
+    setState((s) => ({
       nickname: "",
       totalXP: 0,
       streak: 0,
       highScore: 0,
+      hapticsEnabled: s.hapticsEnabled,
+      soundEnabled: s.soundEnabled,
       loaded: true,
-    });
+    }));
   }, []);
 
   return (
-    <UserContext.Provider value={{ ...state, setNickname, addXP, updateStreak, setHighScore, resetProgress }}>
+    <UserContext.Provider
+      value={{
+        ...state,
+        setNickname,
+        addXP,
+        updateStreak,
+        setHighScore,
+        setHapticsEnabled,
+        setSoundEnabled,
+        resetProgress,
+      }}
+    >
       {children}
     </UserContext.Provider>
   );

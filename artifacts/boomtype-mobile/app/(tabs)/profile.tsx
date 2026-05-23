@@ -11,6 +11,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -24,7 +25,19 @@ import { getLevel, getLevelColor, getXPLevel } from "@/constants/words";
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { nickname, totalXP, streak, highScore, loaded, setNickname, resetProgress } = useUser();
+  const {
+    nickname,
+    totalXP,
+    streak,
+    highScore,
+    hapticsEnabled,
+    soundEnabled,
+    loaded,
+    setNickname,
+    setHapticsEnabled,
+    setSoundEnabled,
+    resetProgress,
+  } = useUser();
   const [editing, setEditing] = useState(false);
   const [input, setInput] = useState(nickname);
   const [error, setError] = useState("");
@@ -237,6 +250,53 @@ export default function ProfileScreen() {
               );
             })
           )}
+        </View>
+
+        {/* Settings */}
+        <Text style={[styles.sectionLabel, { color: colors.mutedForeground, marginTop: 24 }]}>Settings</Text>
+        <View style={[styles.settingsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={styles.settingRow}>
+            <View style={[styles.settingIcon, { backgroundColor: colors.primaryLight }]}>
+              <Feather name="smartphone" size={16} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.settingTitle, { color: colors.foreground }]}>Keystroke haptics</Text>
+              <Text style={[styles.settingSub, { color: colors.mutedForeground }]}>
+                Vibrate as you type during a test
+              </Text>
+            </View>
+            <Switch
+              value={hapticsEnabled}
+              onValueChange={async (v) => {
+                if (v) {
+                  try { await Haptics.selectionAsync(); } catch {}
+                }
+                await setHapticsEnabled(v);
+              }}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={Platform.OS === "android" ? (hapticsEnabled ? colors.primaryForeground : colors.mutedForeground) : undefined}
+              testID="haptics-toggle"
+            />
+          </View>
+          <View style={[styles.settingDivider, { backgroundColor: colors.border }]} />
+          <View style={styles.settingRow}>
+            <View style={[styles.settingIcon, { backgroundColor: colors.accentLight ?? colors.primaryLight }]}>
+              <Feather name="volume-2" size={16} color={colors.accent} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.settingTitle, { color: colors.foreground }]}>Sound effects</Text>
+              <Text style={[styles.settingSub, { color: colors.mutedForeground }]}>
+                Play sounds for celebrations and wins
+              </Text>
+            </View>
+            <Switch
+              value={soundEnabled}
+              onValueChange={(v) => { void setSoundEnabled(v); }}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={Platform.OS === "android" ? (soundEnabled ? colors.primaryForeground : colors.mutedForeground) : undefined}
+              testID="sound-toggle"
+            />
+          </View>
         </View>
 
         {/* Danger zone */}
@@ -461,6 +521,28 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
   },
+  settingsCard: {
+    marginHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  settingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+  },
+  settingIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  settingTitle: { fontSize: 14, fontWeight: "700" },
+  settingSub: { fontSize: 12, marginTop: 2 },
+  settingDivider: { height: 1, marginLeft: 58 },
   dangerTitle: { fontSize: 14, fontWeight: "700" },
   dangerSub: { fontSize: 12, marginTop: 2 },
   modalOverlay: {

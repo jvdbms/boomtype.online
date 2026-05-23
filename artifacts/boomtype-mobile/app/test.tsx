@@ -24,6 +24,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useTypingTest } from "@/hooks/useTypingTest";
+import { useUser } from "@/context/UserContext";
 
 const WORDS_PER_ROW = 5;
 const VISIBLE_ROWS = 3;
@@ -34,6 +35,7 @@ export default function TestScreen() {
   const params = useLocalSearchParams<{ duration: string }>();
   const duration = parseInt(params.duration ?? "30", 10);
 
+  const { hapticsEnabled } = useUser();
   const test = useTypingTest(duration);
   const inputRef = useRef<TextInput>(null);
   const shakeVal = useSharedValue(0);
@@ -79,7 +81,9 @@ export default function TestScreen() {
 
   useEffect(() => {
     if (test.phase === "finished") {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (hapticsEnabled) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
       Keyboard.dismiss();
       router.replace({
         pathname: "/results",
@@ -111,17 +115,19 @@ export default function TestScreen() {
       if (lastChar === " ") {
         const typed = text.trim();
         if (typed.length > 0 && typed !== expectedWord) {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          if (hapticsEnabled) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          }
           shakeVal.value = withSequence(
             withTiming(-6, { duration: 50 }),
             withTiming(6, { duration: 50 }),
             withTiming(-4, { duration: 50 }),
             withTiming(0, { duration: 50 }),
           );
-        } else if (typed.length > 0) {
+        } else if (typed.length > 0 && hapticsEnabled) {
           Haptics.selectionAsync();
         }
-      } else {
+      } else if (hapticsEnabled) {
         const charIdx = text.length - 1;
         const expectedChar = expectedWord[charIdx];
         if (expectedChar !== undefined && lastChar === expectedChar) {
@@ -303,7 +309,9 @@ export default function TestScreen() {
             },
           ]}
           onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            if (hapticsEnabled) {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }
             test.reset();
           }}
         >

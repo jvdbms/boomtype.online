@@ -54,7 +54,7 @@ export default function ResultsScreen() {
   const duration = parseInt(params.duration ?? "30", 10);
   const correctWords = parseInt(params.correct ?? "0", 10);
 
-  const { nickname, totalXP, highScore, addXP, updateStreak, setHighScore } = useUser();
+  const { nickname, totalXP, highScore, hapticsEnabled, soundEnabled, addXP, updateStreak, setHighScore } = useUser();
   const [newStreak, setNewStreak] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState(false);
@@ -133,15 +133,19 @@ export default function ResultsScreen() {
     if (ranOnce.current) return;
     ranOnce.current = true;
 
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (hapticsEnabled) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
 
     if (shouldCelebrate) {
       setShowConfetti(true);
-      try {
-        successPlayer.seekTo(0);
-        successPlayer.play();
-      } catch {
-        // Audio playback is best-effort; ignore failures (e.g. silent mode).
+      if (soundEnabled) {
+        try {
+          successPlayer.seekTo(0);
+          successPlayer.play();
+        } catch {
+          // Audio playback is best-effort; ignore failures (e.g. silent mode).
+        }
       }
     }
 
@@ -164,12 +168,16 @@ export default function ResultsScreen() {
   }, []);
 
   const handleRetry = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (hapticsEnabled) {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
     router.replace({ pathname: "/test", params: { duration } });
   };
 
   const handleHome = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (hapticsEnabled) {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
     router.replace("/");
   };
 
