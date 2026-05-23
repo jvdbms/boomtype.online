@@ -21,7 +21,15 @@ interface Zombie {
   dead: boolean;
 }
 
+interface FloatingPop {
+  id: number;
+  x: number;
+  y: number;
+  text: string;
+}
+
 let zombieId = 0;
+let popId = 0;
 
 export default function ZombieAttack() {
   const [zombies, setZombies] = useState<Zombie[]>([]);
@@ -35,6 +43,9 @@ export default function ZombieAttack() {
   const [newHighScore, setNewHighScore] = useState(false);
   const [nicknameInput, setNicknameInput] = useState("");
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
+  const [floatingPops, setFloatingPops] = useState<FloatingPop[]>([]);
+  const [damageFlash, setDamageFlash] = useState(false);
+  const [waveBanner, setWaveBanner] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const animRef = useRef<number>(0);
   const zombiesRef = useRef<Zombie[]>([]);
@@ -55,6 +66,17 @@ export default function ZombieAttack() {
     document.title = "Zombie Attack | BoomType Games";
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute("content", "Play Zombie Attack on BoomType — type zombie word labels to destroy them before they reach your base. Typing survival game with wave system.");
+  }, []);
+
+  const addFloatingPop = useCallback((x: number, y: number, text: string) => {
+    const id = ++popId;
+    setFloatingPops(prev => [...prev, { id, x, y, text }]);
+    setTimeout(() => setFloatingPops(prev => prev.filter(p => p.id !== id)), 900);
+  }, []);
+
+  const triggerDamageFlash = useCallback(() => {
+    setDamageFlash(true);
+    setTimeout(() => setDamageFlash(false), 400);
   }, []);
 
   const submitToLeaderboard = useCallback((finalScore: number, nick: string) => {
@@ -95,6 +117,7 @@ export default function ZombieAttack() {
         const newHp = Math.max(0, playerHpRef.current - damage);
         playerHpRef.current = newHp;
         setPlayerHp(newHp);
+        triggerDamageFlash();
         if (newHp <= 0) {
           setGameState("over");
           gameStateRef.current = "over";
@@ -119,7 +142,7 @@ export default function ZombieAttack() {
     });
 
     animRef.current = requestAnimationFrame(gameLoop);
-  }, [spawnZombie, playGameOver, submitToLeaderboard]);
+  }, [spawnZombie, playGameOver, submitToLeaderboard, triggerDamageFlash]);
 
   const startGame = useCallback(() => {
     zombieId = 0;
@@ -136,6 +159,9 @@ export default function ZombieAttack() {
     setNewHighScore(false);
     setScoreSubmitted(false);
     setNicknameInput(getNickname());
+    setFloatingPops([]);
+    setDamageFlash(false);
+    setWaveBanner(null);
     setGameState("playing");
     gameStateRef.current = "playing";
     animRef.current = requestAnimationFrame(gameLoop);
@@ -148,7 +174,10 @@ export default function ZombieAttack() {
 
   useEffect(() => {
     if (score > 0 && score % 8 === 0) {
+      const nextWave = Math.floor(score / 8) + 1;
       setWave(w => { const nw = w + 1; waveRef.current = nw; return nw; });
+      setWaveBanner(nextWave);
+      setTimeout(() => setWaveBanner(null), 1800);
     }
   }, [score]);
 
@@ -162,6 +191,7 @@ export default function ZombieAttack() {
         if (z.word.startsWith(val.trim()) && val.trim().length > 0) {
           if (z.word === val.trim()) {
             playCorrect();
+            addFloatingPop(z.x, Math.max(5, z.y - 8), "+1");
             setKilledIds(k => [...k, z.id]);
             setScore(s => { const ns = s + 1; scoreRef.current = ns; return ns; });
             setTimeout(() => {
@@ -177,7 +207,7 @@ export default function ZombieAttack() {
       }
       return prev.map(z => ({ ...z, typed: "" }));
     });
-  }, [playCorrect]);
+  }, [playCorrect, addFloatingPop]);
 
   const handleManualSubmit = useCallback(() => {
     submitToLeaderboard(finalScoreRef.current, nicknameInput);
@@ -214,6 +244,46 @@ export default function ZombieAttack() {
         </div>
 
         <div className="relative rounded-2xl bg-card border border-red-500/20 overflow-hidden" style={{ height: "380px" }}>
+          {damageFlash && (
+            <div className="absolute inset-0 bg-red-500/30 z-10 pointer-events-none rounded-2xl" />
+          )}
+
+          <AnimatePresence>
+            {waveBanner !== null && (
+              <motion.div
+                key={`wave-${waveBanner}`}
+                initial={{ opacity: 0, scale: 0.7, y: -20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 1.1, y: -10 }}
+                transition={{ duration: 0.3 }}
+                className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none"
+              >
+                <div className="bg-red-600/90 text-white font-black text-2xl px-8 py-3 rounded-2xl shadow-lg shadow-red-500/40">
+                  🧟 Wave {waveBanner}!
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {floatingPops.map(pop => (
+              <motion.div
+                key={pop.id}
+                initial={{ opacity: 1, y: 0, scale: 1 }}
+                animate={{ opacity: 0, y: -50, scale: 1.3 }}
+                transition={{ duration: 0.85, ease: "easeOut" }}
+                className="absolute pointer-events-none font-black text-green-400 text-base drop-shadow-lg z-20"
+                style={{
+                  left: `${pop.x}%`,
+                  top: `${pop.y}%`,
+                  transform: "translateX(-50%)",
+                }}
+              >
+                {pop.text}
+              </motion.div>
+            ))}
+          </AnimatePresence>
+
           {gameState === "idle" && (
             <div className="absolute inset-0 flex items-center justify-center bg-card/80 backdrop-blur-sm z-20">
               <div className="text-center">

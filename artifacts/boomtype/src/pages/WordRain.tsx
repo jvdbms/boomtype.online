@@ -19,7 +19,15 @@ interface FallingWord {
   matched: boolean;
 }
 
+interface FloatingPop {
+  id: number;
+  x: number;
+  y: number;
+  text: string;
+}
+
 let wordId = 0;
+let popId = 0;
 
 export default function WordRain() {
   const [words, setWords] = useState<FallingWord[]>([]);
@@ -33,6 +41,9 @@ export default function WordRain() {
   const [newHighScore, setNewHighScore] = useState(false);
   const [nicknameInput, setNicknameInput] = useState("");
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
+  const [floatingPops, setFloatingPops] = useState<FloatingPop[]>([]);
+  const [damageFlash, setDamageFlash] = useState(false);
+  const [waveBanner, setWaveBanner] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const animRef = useRef<number>(0);
   const wordsRef = useRef<FallingWord[]>([]);
@@ -57,6 +68,17 @@ export default function WordRain() {
     document.title = "Word Rain | BoomType Games";
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute("content", "Play Word Rain on BoomType — type falling words before they hit the ground. Fun typing game that improves speed and reaction time.");
+  }, []);
+
+  const addFloatingPop = useCallback((x: number, y: number, text: string) => {
+    const id = ++popId;
+    setFloatingPops(prev => [...prev, { id, x, y, text }]);
+    setTimeout(() => setFloatingPops(prev => prev.filter(p => p.id !== id)), 900);
+  }, []);
+
+  const triggerDamageFlash = useCallback(() => {
+    setDamageFlash(true);
+    setTimeout(() => setDamageFlash(false), 400);
   }, []);
 
   const submitToLeaderboard = useCallback((finalScore: number, nick: string) => {
@@ -93,6 +115,7 @@ export default function WordRain() {
       if (passed.length > 0 && livesRef.current > 0) {
         const newLives = Math.max(0, livesRef.current - passed.length);
         livesRef.current = newLives;
+        triggerDamageFlash();
         if (newLives <= 0) {
           setGameState("over");
           gameStateRef.current = "over";
@@ -118,7 +141,7 @@ export default function WordRain() {
     });
 
     animRef.current = requestAnimationFrame(gameLoop);
-  }, [spawnWord, playGameOver, submitToLeaderboard]);
+  }, [spawnWord, playGameOver, submitToLeaderboard, triggerDamageFlash]);
 
   const startGame = useCallback(() => {
     wordId = 0;
@@ -133,6 +156,9 @@ export default function WordRain() {
     setNewHighScore(false);
     setScoreSubmitted(false);
     setNicknameInput(getNickname());
+    setFloatingPops([]);
+    setDamageFlash(false);
+    setWaveBanner(null);
     setGameState("playing");
     gameStateRef.current = "playing";
     livesRef.current = 3;
@@ -147,7 +173,10 @@ export default function WordRain() {
 
   useEffect(() => {
     if (score > 0 && score % 5 === 0) {
+      const nextWave = Math.floor(score / 5) + 1;
       setWave(w => { const nw = w + 1; waveRef.current = nw; return nw; });
+      setWaveBanner(nextWave);
+      setTimeout(() => setWaveBanner(null), 1800);
     }
   }, [score]);
 
@@ -158,6 +187,7 @@ export default function WordRain() {
     const match = wordsRef.current.find(w => !w.matched && w.word === val.trim());
     if (match) {
       playCorrect();
+      addFloatingPop(match.x, Math.max(5, match.y - 5), "+1");
       setWords(prev => prev.map(w => w.id === match.id ? { ...w, matched: true } : w));
       setDestroyed(prev => [...prev, match.id]);
       setScore(s => { const ns = s + 1; scoreRef.current = ns; return ns; });
@@ -167,7 +197,7 @@ export default function WordRain() {
         setDestroyed(prev => prev.filter(id => id !== match.id));
       }, 300);
     }
-  }, [playCorrect]);
+  }, [playCorrect, addFloatingPop]);
 
   const handleManualSubmit = useCallback(() => {
     submitToLeaderboard(finalScoreRef.current, nicknameInput);
@@ -192,6 +222,46 @@ export default function WordRain() {
         </div>
 
         <div className="relative rounded-2xl bg-card border border-blue-500/20 overflow-hidden" style={{ height: "420px" }}>
+          {damageFlash && (
+            <div className="absolute inset-0 bg-red-500/25 z-10 pointer-events-none rounded-2xl" />
+          )}
+
+          <AnimatePresence>
+            {waveBanner !== null && (
+              <motion.div
+                key={`wave-${waveBanner}`}
+                initial={{ opacity: 0, scale: 0.7, y: -20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 1.1, y: -10 }}
+                transition={{ duration: 0.3 }}
+                className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none"
+              >
+                <div className="bg-orange-500/90 text-white font-black text-2xl px-8 py-3 rounded-2xl shadow-lg shadow-orange-500/40">
+                  🌊 Wave {waveBanner}!
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {floatingPops.map(pop => (
+              <motion.div
+                key={pop.id}
+                initial={{ opacity: 1, y: 0, scale: 1 }}
+                animate={{ opacity: 0, y: -50, scale: 1.3 }}
+                transition={{ duration: 0.85, ease: "easeOut" }}
+                className="absolute pointer-events-none font-black text-green-400 text-base drop-shadow-lg z-20"
+                style={{
+                  left: `${pop.x}%`,
+                  top: `${pop.y}%`,
+                  transform: "translateX(-50%)",
+                }}
+              >
+                {pop.text}
+              </motion.div>
+            ))}
+          </AnimatePresence>
+
           {gameState === "idle" && (
             <div className="absolute inset-0 flex items-center justify-center bg-card/80 backdrop-blur-sm z-20">
               <div className="text-center">

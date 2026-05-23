@@ -20,7 +20,15 @@ interface Bubble {
   popped: boolean;
 }
 
+interface FloatingPop {
+  id: number;
+  x: number;
+  y: number;
+  text: string;
+}
+
 let bubbleId = 0;
+let popId = 0;
 
 export default function SpeedBurst() {
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
@@ -34,6 +42,8 @@ export default function SpeedBurst() {
   const [newHighScore, setNewHighScore] = useState(false);
   const [nicknameInput, setNicknameInput] = useState("");
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
+  const [floatingPops, setFloatingPops] = useState<FloatingPop[]>([]);
+  const [comboBanner, setComboBanner] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const gameStateRef = useRef<"idle" | "playing" | "over">("idle");
   const bubblesRef = useRef<Bubble[]>([]);
@@ -52,6 +62,12 @@ export default function SpeedBurst() {
     document.title = "Speed Burst | BoomType Games";
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute("content", "Play Speed Burst on BoomType — pop floating word bubbles by typing them before they disappear. Build combos for huge score multipliers!");
+  }, []);
+
+  const addFloatingPop = useCallback((x: number, y: number, text: string) => {
+    const id = ++popId;
+    setFloatingPops(prev => [...prev, { id, x, y, text }]);
+    setTimeout(() => setFloatingPops(prev => prev.filter(p => p.id !== id)), 900);
   }, []);
 
   const submitToLeaderboard = useCallback((fs: number, nick: string) => {
@@ -80,6 +96,7 @@ export default function SpeedBurst() {
 
   const startGame = useCallback(() => {
     bubbleId = 0;
+    popId = 0;
     setBubbles([]);
     setInput("");
     setScore(0);
@@ -89,6 +106,8 @@ export default function SpeedBurst() {
     setNewHighScore(false);
     setScoreSubmitted(false);
     setNicknameInput(getNickname());
+    setFloatingPops([]);
+    setComboBanner(null);
     setGameState("playing");
     gameStateRef.current = "playing";
     inputRef.current?.focus();
@@ -138,14 +157,21 @@ export default function SpeedBurst() {
 
     const match = bubblesRef.current.find(b => !b.popped && b.word === val.trim());
     if (match) {
+      const bx = match.x;
+      const by = match.y;
       setBubbles(prev => prev.map(b => b.id === match.id ? { ...b, popped: true } : b));
       setCombo(c => {
         const nc = c + 1;
         const multiplier = Math.max(1, Math.floor(nc / 3));
         if (nc > 0 && nc % 3 === 0) {
           playCombo(multiplier);
+          const pts = 10 * multiplier;
+          addFloatingPop(bx, Math.max(5, by - 8), `+${pts} ×${multiplier}`);
+          setComboBanner(multiplier);
+          setTimeout(() => setComboBanner(null), 1400);
         } else {
           playCorrect();
+          addFloatingPop(bx, Math.max(5, by - 8), "+10");
         }
         setScore(s => s + 10 * multiplier);
         return nc;
@@ -153,7 +179,7 @@ export default function SpeedBurst() {
       setInput("");
       setTimeout(() => setBubbles(prev => prev.filter(b => b.id !== match.id)), 400);
     }
-  }, [playCorrect, playCombo]);
+  }, [playCorrect, playCombo, addFloatingPop]);
 
   const handleManualSubmit = useCallback(() => {
     submitToLeaderboard(finalScore, nicknameInput);
@@ -180,6 +206,42 @@ export default function SpeedBurst() {
         </div>
 
         <div className="relative rounded-2xl bg-card border border-purple-500/20 overflow-hidden" style={{ height: "420px" }}>
+          <AnimatePresence>
+            {comboBanner !== null && (
+              <motion.div
+                key={`combo-${comboBanner}-${Date.now()}`}
+                initial={{ opacity: 0, scale: 0.6, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 1.15, y: -15 }}
+                transition={{ duration: 0.3 }}
+                className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none"
+              >
+                <div className="bg-yellow-500/90 text-black font-black text-2xl px-8 py-3 rounded-2xl shadow-lg shadow-yellow-500/40">
+                  ⚡ {comboBanner}x COMBO!
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {floatingPops.map(pop => (
+              <motion.div
+                key={pop.id}
+                initial={{ opacity: 1, y: 0, scale: 1 }}
+                animate={{ opacity: 0, y: -55, scale: 1.3 }}
+                transition={{ duration: 0.85, ease: "easeOut" }}
+                className="absolute pointer-events-none font-black text-yellow-300 text-sm drop-shadow-lg z-20"
+                style={{
+                  left: `${pop.x}%`,
+                  top: `${pop.y}%`,
+                  transform: "translateX(-50%)",
+                }}
+              >
+                {pop.text}
+              </motion.div>
+            ))}
+          </AnimatePresence>
+
           {gameState === "idle" && (
             <div className="absolute inset-0 flex items-center justify-center bg-card/80 backdrop-blur-sm z-20">
               <div className="text-center">
