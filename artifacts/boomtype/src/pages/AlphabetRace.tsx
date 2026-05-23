@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Trophy, RefreshCw, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useGameSounds } from "@/hooks/useGameSounds";
+import { addXP, awardGameBadge, calculateGameXP } from "@/lib/storage";
 
 const HS_KEY = "boomtype_alphabetrace_hs";
 const MODES = [
@@ -81,6 +82,8 @@ export default function AlphabetRace() {
         if (newBest) saveBest(t, mode.id);
         setGameState("done");
         playGameOver();
+        addXP(calculateGameXP("alphabet-race", 1));
+        if (mode.id === "az" && t < 8) awardGameBadge("alphabet-ace");
       } else {
         setCurrentIdx(prev => prev + 1);
       }

@@ -5,6 +5,7 @@ import { ArrowLeft, Trophy, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WORD_LIST, LESSON_WORDS } from "@/lib/words";
 import { useGameSounds } from "@/hooks/useGameSounds";
+import { addXP, awardGameBadge, calculateGameXP } from "@/lib/storage";
 
 const HS_KEY = "boomtype_cloudrace_hs";
 const RACE_DISTANCE = 100;
@@ -63,8 +64,11 @@ export default function CloudRace() {
         setHighScore(wordsTypedRef.current);
         localStorage.setItem(HS_KEY, wordsTypedRef.current.toString());
       }
+      addXP(calculateGameXP("cloud-race", wordsTypedRef.current));
+      awardGameBadge("cloud-racer");
     } else {
       playGameOver();
+      addXP(calculateGameXP("cloud-race", Math.floor(wordsTypedRef.current / 2)));
     }
   }, [highScore, playCombo, playGameOver]);
 

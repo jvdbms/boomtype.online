@@ -5,7 +5,7 @@ import { ArrowLeft, RefreshCw, CloudRain, Trophy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WORD_LIST } from "@/lib/words";
 import { useGameSounds } from "@/hooks/useGameSounds";
-import { getNickname, setNickname } from "@/lib/storage";
+import { getNickname, setNickname, addXP, awardGameBadge, calculateGameXP } from "@/lib/storage";
 import { useSubmitGameScore } from "@workspace/api-client-react";
 
 const HIGH_SCORE_KEY = "boomtype_wordrain_hs";
@@ -128,6 +128,8 @@ export default function WordRain() {
             setHighScore(fs);
             setNewHighScore(true);
           }
+          addXP(calculateGameXP("word-rain", fs));
+          if (fs >= 30) awardGameBadge("word-warden");
           const storedNick = getNickname();
           if (storedNick) {
             setNicknameInput(storedNick);
@@ -286,6 +288,14 @@ export default function WordRain() {
                 <h2 className="text-2xl font-black mb-1">Game Over!</h2>
                 <p className="text-muted-foreground mb-2">You reached Wave {wave}</p>
                 <p className="text-4xl font-black text-primary mb-1">{finalScoreRef.current} words</p>
+                {finalScoreRef.current > 0 && (
+                  <p className="text-yellow-400 font-bold mb-1 text-sm flex items-center justify-center gap-1">
+                    ⚡ +{calculateGameXP("word-rain", finalScoreRef.current)} XP earned
+                  </p>
+                )}
+                {finalScoreRef.current >= 30 && (
+                  <p className="text-blue-400 font-bold mb-1 text-sm">🌧️ Word Warden badge unlocked!</p>
+                )}
                 {newHighScore && finalScoreRef.current > 0 && (
                   <p className="text-yellow-400 font-bold mb-2 text-sm">🏆 New High Score!</p>
                 )}

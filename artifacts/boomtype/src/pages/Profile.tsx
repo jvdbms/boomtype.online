@@ -15,7 +15,7 @@ import { getLevel, getLevelColor, calculateXP } from "@/lib/words";
 import {
   getTestHistory, getMistakeHeatmap, getBestTimeOfDay,
   getWeeklyImprovement, getLeaderboardSubmitCount,
-  clearMistakeHeatmap,
+  clearMistakeHeatmap, getGameBadges, GAME_BADGE_DEFS,
 } from "@/lib/storage";
 
 // ─── Types ────────────────────────────────────────────────────
@@ -117,6 +117,8 @@ export default function Profile() {
   const weeklyImprove = getWeeklyImprovement();
   const lbCount       = getLeaderboardSubmitCount();
   const isPremium     = lbCount >= 10;
+  const gameBadgeIds  = getGameBadges();
+  const gameBadges    = gameBadgeIds.map(id => GAME_BADGE_DEFS[id]).filter(Boolean);
 
   const chartData = useMemo(() => (
     [...history].reverse().map((item, i) => ({
@@ -242,6 +244,34 @@ export default function Profile() {
             <StatCard label="Avg Accuracy"  value={`${Math.round(profile.avgAccuracy)}%`}  sub="All Tests"      icon={Target}   color="text-green-400"  />
             <StatCard label="Total Tests"   value={profile.totalTests}                     sub="Completed"      icon={Trophy}   color="text-yellow-400" />
           </div>
+
+          {/* ── Mini-Game Badges ── */}
+          {gameBadges.length > 0 && (
+            <div className="rounded-2xl bg-card border border-border/60 p-5 mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Star className="w-4 h-4 text-yellow-400" />
+                <h2 className="font-bold text-sm">Mini-Game Achievements</h2>
+                <span className="ml-auto text-xs text-muted-foreground">{gameBadges.length} earned</span>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {gameBadges.map(badge => (
+                  <motion.div
+                    key={badge.id}
+                    initial={{ opacity: 0, scale: 0.85 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    title={badge.description}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-border/50 hover:border-border transition-colors cursor-default"
+                  >
+                    <span className="text-lg">{badge.icon}</span>
+                    <div>
+                      <div className={`text-xs font-bold ${badge.color}`}>{badge.name}</div>
+                      <div className="text-[10px] text-muted-foreground leading-tight max-w-[140px]">{badge.description}</div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* ── LOCAL ANALYTICS SECTION ── */}
           {hasLocalData && (

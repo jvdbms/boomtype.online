@@ -8,6 +8,7 @@ const STORAGE_KEYS = {
   TEST_HISTORY:       "boomtype_test_history",
   MISTAKE_HEATMAP:    "boomtype_mistake_heatmap",
   LB_SUBMIT_COUNT:    "boomtype_lb_submit_count",
+  GAME_BADGES:        "boomtype_game_badges",
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -219,4 +220,102 @@ export function getAverageWpm(last = 10): number {
   const history = getTestHistory().slice(0, last);
   if (!history.length) return 0;
   return Math.round(history.reduce((s, h) => s + h.wpm, 0) / history.length);
+}
+
+// ─────────────────────────────────────────────────────────────
+// Mini-Game Badges
+// ─────────────────────────────────────────────────────────────
+
+export interface GameBadgeDef {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+}
+
+export const GAME_BADGE_DEFS: Record<string, GameBadgeDef> = {
+  "zombie-slayer": {
+    id: "zombie-slayer",
+    name: "Zombie Slayer",
+    description: "Kill 50 zombies in a single Zombie Attack game",
+    icon: "🧟",
+    color: "text-red-400",
+  },
+  "word-warden": {
+    id: "word-warden",
+    name: "Word Warden",
+    description: "Destroy 30 words in a single Word Rain game",
+    icon: "🌧️",
+    color: "text-blue-400",
+  },
+  "speed-freak": {
+    id: "speed-freak",
+    name: "Speed Freak",
+    description: "Score 50+ points in Speed Burst",
+    icon: "⚡",
+    color: "text-purple-400",
+  },
+  "bubble-master": {
+    id: "bubble-master",
+    name: "Bubble Master",
+    description: "Score 100+ points in Bubble Pop",
+    icon: "🫧",
+    color: "text-cyan-400",
+  },
+  "tetris-master": {
+    id: "tetris-master",
+    name: "Tetris Master",
+    description: "Clear 20+ words in Word Tetris",
+    icon: "🧱",
+    color: "text-orange-400",
+  },
+  "pipe-cleaner": {
+    id: "pipe-cleaner",
+    name: "Pipe Cleaner",
+    description: "Clear 30+ words in Pipe Run",
+    icon: "🔧",
+    color: "text-green-400",
+  },
+  "alphabet-ace": {
+    id: "alphabet-ace",
+    name: "Alphabet Ace",
+    description: "Complete A→Z in under 8 seconds",
+    icon: "🔤",
+    color: "text-yellow-400",
+  },
+  "cloud-racer": {
+    id: "cloud-racer",
+    name: "Cloud Racer",
+    description: "Win a race in Cloud Race",
+    icon: "☁️",
+    color: "text-sky-400",
+  },
+};
+
+export function getGameBadges(): string[] {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.GAME_BADGES) || "[]"); }
+  catch { return []; }
+}
+
+export function awardGameBadge(badgeId: string): boolean {
+  const badges = getGameBadges();
+  if (badges.includes(badgeId)) return false;
+  badges.push(badgeId);
+  localStorage.setItem(STORAGE_KEYS.GAME_BADGES, JSON.stringify(badges));
+  return true;
+}
+
+export function calculateGameXP(game: string, score: number): number {
+  switch (game) {
+    case "word-rain":     return score;
+    case "zombie-attack": return score;
+    case "speed-burst":   return Math.round(score / 5);
+    case "bubble-pop":    return Math.round(score / 10);
+    case "word-tetris":   return Math.round(score / 3);
+    case "pipe-run":      return score;
+    case "alphabet-race": return 20;
+    case "cloud-race":    return score;
+    default:              return Math.round(score / 2);
+  }
 }

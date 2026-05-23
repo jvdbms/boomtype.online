@@ -5,6 +5,7 @@ import { ArrowLeft, Trophy, RefreshCw, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WORD_LIST, LESSON_WORDS } from "@/lib/words";
 import { useGameSounds } from "@/hooks/useGameSounds";
+import { addXP, awardGameBadge, calculateGameXP } from "@/lib/storage";
 
 const HS_KEY = "boomtype_piperun_hs";
 const NUM_LANES = 4;
@@ -60,6 +61,8 @@ export default function PipeRun() {
       localStorage.setItem(HS_KEY, fs.toString());
       setHighScore(fs);
     }
+    addXP(calculateGameXP("pipe-run", fs));
+    if (fs >= 30) awardGameBadge("pipe-cleaner");
   }, [playGameOver]);
 
   // Game loop

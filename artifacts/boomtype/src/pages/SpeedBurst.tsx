@@ -5,7 +5,7 @@ import { ArrowLeft, RefreshCw, Zap, Trophy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WORD_LIST } from "@/lib/words";
 import { useGameSounds } from "@/hooks/useGameSounds";
-import { getNickname, setNickname } from "@/lib/storage";
+import { getNickname, setNickname, addXP, awardGameBadge, calculateGameXP } from "@/lib/storage";
 import { useSubmitGameScore } from "@workspace/api-client-react";
 
 const HIGH_SCORE_KEY = "boomtype_speedburst_hs";
@@ -129,6 +129,8 @@ export default function SpeedBurst() {
               setHighScore(s);
               setNewHighScore(true);
             }
+            addXP(calculateGameXP("speed-burst", s));
+            if (s >= 50) awardGameBadge("speed-freak");
             const storedNick = getNickname();
             if (storedNick) {
               setNicknameInput(storedNick);
