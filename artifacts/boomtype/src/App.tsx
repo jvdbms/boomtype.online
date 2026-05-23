@@ -35,6 +35,7 @@ import AlphabetRace from "@/pages/AlphabetRace";
 import CloudRace from "@/pages/CloudRace";
 import Download from "@/pages/Download";
 import Payment from "@/pages/Payment";
+import Analytics from "@/pages/Analytics";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -115,6 +116,7 @@ function AppLayout() {
             <Route path="/games/word-tetris" component={WordTetris} />
             <Route path="/games/alphabet-race" component={AlphabetRace} />
             <Route path="/games/cloud-race" component={CloudRace} />
+            <Route path="/analytics" component={Analytics} />
             <Route path="/download" component={Download} />
             <Route path="/payment" component={Payment} />
             <Route component={NotFound} />

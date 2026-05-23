@@ -26,7 +26,7 @@ const CATEGORY_LABELS: Record<TextCategory, string> = {
 
 export default function TypingTest() {
   const [, setLocation] = useLocation();
-  const [duration, setDuration] = useState<30 | 60>(30);
+  const [duration, setDuration] = useState<number>(30);
   const [category, setCategory] = useState<TextCategory>("common");
   const [words, setWords] = useState<string[]>([]);
   const [charStates, setCharStates] = useState<CharInfo[][]>([]);
@@ -44,6 +44,7 @@ export default function TypingTest() {
   const inputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
+  const mistakeCharsRef = useRef<string[]>([]);
   const wordContainerRef = useRef<HTMLDivElement>(null);
   const halfSpokenRef = useRef(false);
   const { speak } = useVoice();
@@ -73,6 +74,7 @@ export default function TypingTest() {
     setTotalKeystrokes(0);
     setCorrectKeystrokes(0);
     halfSpokenRef.current = false;
+    mistakeCharsRef.current = [];
   }, [duration, category]);
 
   useEffect(() => {
@@ -115,7 +117,7 @@ export default function TypingTest() {
     setWpm(finalWpm);
     setAccuracy(finalAccuracy);
     speak(`Test complete! You scored ${finalWpm} words per minute with ${finalAccuracy} percent accuracy. Excellent!`, true);
-    saveLastResult({ wpm: finalWpm, accuracy: finalAccuracy, mistakes, duration });
+    saveLastResult({ wpm: finalWpm, accuracy: finalAccuracy, mistakes, duration, mistakeChars: mistakeCharsRef.current });
     setTimeout(() => setLocation("/results"), 1200);
   }, [currentWordIndex, totalKeystrokes, correctKeystrokes, mistakes, duration, setLocation, speak]);
 
@@ -202,6 +204,8 @@ export default function TypingTest() {
         setCorrectKeystrokes(prev => prev + 1);
       } else {
         setMistakes(prev => prev + 1);
+        const missedChar = currentWord[input.length];
+        if (missedChar) mistakeCharsRef.current.push(missedChar);
       }
 
       setCharStates(prev => {
@@ -236,15 +240,22 @@ export default function TypingTest() {
         {!isStarted && !isFinished && (
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
             <div className="flex gap-2">
-              {([30, 60] as const).map(d => (
+              {[
+                { val: 30,  label: "30s"   },
+                { val: 60,  label: "1 min" },
+                { val: 120, label: "2 min" },
+                { val: 180, label: "3 min" },
+                { val: 240, label: "4 min" },
+                { val: 300, label: "5 min" },
+              ].map(({ val, label }) => (
                 <Button
-                  key={d}
-                  variant={duration === d ? "default" : "outline"}
-                  onClick={() => { setDuration(d); }}
-                  className={`px-6 font-bold ${duration === d ? "bg-primary text-white" : "border-border/60 hover:bg-white/5"}`}
-                  data-testid={`button-duration-${d}`}
+                  key={val}
+                  variant={duration === val ? "default" : "outline"}
+                  onClick={() => { setDuration(val); }}
+                  className={`px-4 font-bold ${duration === val ? "bg-primary text-white" : "border-border/60 hover:bg-white/5"}`}
+                  data-testid={`button-duration-${val}`}
                 >
-                  {d}s
+                  {label}
                 </Button>
               ))}
             </div>

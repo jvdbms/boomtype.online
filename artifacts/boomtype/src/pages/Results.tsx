@@ -5,7 +5,7 @@ import { Share2, Download, Trophy, RefreshCw, CheckCircle, Zap, Star } from "luc
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSubmitScore } from "@workspace/api-client-react";
-import { getLastResult, setHighScore, addXP, updateStreak, getNickname, setNickname } from "@/lib/storage";
+import { getLastResult, setHighScore, addXP, updateStreak, getNickname, setNickname, incrementLeaderboardSubmits } from "@/lib/storage";
 import { getLevel, getLevelColor, calculateXP } from "@/lib/words";
 import AdBanner from "@/components/AdBanner";
 
@@ -56,7 +56,7 @@ export default function Results() {
         mistakes: result.mistakes,
       }
     }, {
-      onSuccess: () => setSubmitted(true),
+      onSuccess: () => { setSubmitted(true); incrementLeaderboardSubmits(); },
     });
   };
 

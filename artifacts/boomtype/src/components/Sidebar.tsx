@@ -6,7 +6,7 @@ import {
   Trophy, BookOpen, Download, ChevronLeft, ChevronRight,
   Star, Flame, Target, TrendingUp, Lock, CheckCircle2,
   CloudRain, Sword, CircleDot, Waves, Wrench, Layers, Timer, Wind,
-  Menu
+  Menu, BarChart2
 } from "lucide-react";
 import { getTotalXP, getStreak, getHighScore } from "@/lib/storage";
 
@@ -23,6 +23,7 @@ const NAV_SECTIONS = [
       { href: "/test",         icon: Keyboard,        label: "Typing Test", badge: null },
       { href: "/lessons",      icon: GraduationCap,   label: "Lessons",     badge: "7" },
       { href: "/leaderboard",  icon: Trophy,          label: "Leaderboard", badge: null },
+      { href: "/analytics",    icon: BarChart2,       label: "Analytics",   badge: null },
     ],
   },
   {

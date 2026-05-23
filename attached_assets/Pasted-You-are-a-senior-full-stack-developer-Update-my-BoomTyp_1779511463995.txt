@@ -1,0 +1,152 @@
+You are a senior full-stack developer. Update my "BoomType" typing web app 
+into a world-class, professional typing platform. Implement ALL of the 
+following features with clean, modern, production-grade code:
+
+─────────────────────────────────────────
+1. TYPING TEST — DURATION OPTIONS
+─────────────────────────────────────────
+- Add a duration selector before starting any typing test
+- Options: 30s | 1 min | 2 min | 3 min | 4 min | 5 min
+- Display as sleek toggle pills/buttons (active state highlighted)
+- Timer countdown visible and prominent during test
+- Auto-submit and show results when timer hits zero
+
+─────────────────────────────────────────
+2. TYPING TEST — FIX MISSING WORD / KEY ERRORS
+─────────────────────────────────────────
+- Rewrite the core typing engine from scratch
+- Characters must highlight GREEN (correct) or RED (incorrect) in real time
+- Do NOT skip or jump words — user must correct current character before moving on
+- Backspace must work smoothly to fix mistakes
+- No word-skipping bug — each word must be fully typed before advancing
+- WPM, accuracy, and error count must calculate correctly in real time
+- Ensure the test runs completely smooth and lag-free
+
+─────────────────────────────────────────
+3. DESKTOP APP — REMOVE INSTALLATION ERRORS
+─────────────────────────────────────────
+- Ensure the app is a fully functional Progressive Web App (PWA)
+- Add a valid manifest.json with app name, icons (192x192, 512x512), 
+  theme color, and display: standalone
+- Add a working service worker for offline caching
+- Add an "Install App" button in the navbar that triggers the PWA install prompt
+- Ensure no console errors on load — test and fix all broken asset paths
+
+─────────────────────────────────────────
+4. LESSONS SECTION — STRUCTURED 3-PHASE LEARNING
+─────────────────────────────────────────
+Build a full lesson system with minimum 10 lessons per phase:
+
+PHASE 1 — Letter by Letter (10 lessons)
+  e.g., Lesson 1: Home row keys (a s d f g h j k l ;)
+        Lesson 2: Top row keys (q w e r t y u i o p)
+        Lesson 3: Bottom row keys (z x c v b n m , . /)
+        ...continuing with shift keys, numbers, symbols
+
+PHASE 2 — Word by Word (10 lessons)
+  e.g., common 2-letter words → 3-letter → 4-letter → common English words
+
+PHASE 3 — Short Sentences (10 lessons)
+  e.g., simple sentences → paragraph-level typing
+
+Each lesson must:
+- Show progress bar (e.g., Step 3 of 10)
+- Track accuracy and speed per lesson
+- Mark lesson as "Completed" with a checkmark
+- Unlock next lesson only after 80%+ accuracy
+- Show a motivational completion message after each lesson
+
+─────────────────────────────────────────
+5. USER ACCOUNTS — PERSONAL TYPING HISTORY & DAILY GOALS
+─────────────────────────────────────────
+- Add full user authentication: Sign Up / Log In / Log Out
+- Use email + password (with Firebase Auth or Supabase Auth)
+- Each user gets a personal dashboard showing:
+    • Total words typed (all time)
+    • Average WPM (weekly graph)
+    • Accuracy trend (line chart)
+    • Current lesson progress
+    • Streak days (like Duolingo)
+- "Resume where you left off" — save last lesson and test position per user
+- Daily Practice Goal setting:
+    • User can set daily goal: 15 / 20 / 30 / 40 / 60 minutes
+    • Progress bar on dashboard shows today's practice vs goal
+    • Push notification (web) or badge reminder if goal not met by evening
+- All data stored in database per user (Firebase Firestore or Supabase)
+
+─────────────────────────────────────────
+6. USER INTERFACE — ONE-CLICK FRIENDLY DESIGN
+─────────────────────────────────────────
+- Clean, modern dark + light mode toggle
+- Hero section with a single large "Start Typing Now" CTA button
+- No unnecessary clicks to begin a test — duration select → click Start → go
+- Keyboard heatmap shown during test (shows which keys user hits most)
+- Smooth animations using Framer Motion or CSS transitions
+- Mobile responsive but optimized for desktop typing experience
+- Persistent navbar: Logo | Tests | Lessons | Dashboard | Blog | Upgrade to Pro
+- Show live WPM counter during test in large font
+
+─────────────────────────────────────────
+7. PRO VERSION — PREMIUM FEATURE GATING
+─────────────────────────────────────────
+Free Plan includes:
+  - Basic typing tests (30s, 1 min)
+  - Lessons Phase 1 only
+  - Basic stats
+
+Pro Plan ($X/month) unlocks:
+  - All test durations (up to 5 min)
+  - All 3 lesson phases
+  - CODING PRACTICE section:
+      • Practice typing real code snippets (Python, JavaScript, HTML, CSS)
+      • Syntax-highlighted code display
+      • Measure code-typing WPM separately
+  - NUMERIC KEYPAD section:
+      • Number-only typing tests
+      • Numpad layout visual guide
+  - Advanced analytics and history
+  - Priority support
+
+- Add a "Pro" badge on locked features with a lock icon
+- Clicking locked features opens an upgrade modal
+- Add a /pricing page with Free vs Pro comparison table
+- Integrate Stripe for subscription payment
+
+─────────────────────────────────────────
+8. BLOG & WORLD-CLASS CONTENT SECTION
+─────────────────────────────────────────
+- Create a /blog page with a modern card-grid layout
+- Add minimum 6 high-quality blog posts with featured images, including:
+    1. "How to Type 100 WPM in 30 Days"
+    2. "The Science Behind Touch Typing"
+    3. "Best Typing Habits for Programmers"
+    4. "How Typing Speed Affects Your Career"
+    5. "Top 10 Typing Mistakes Beginners Make"
+    6. "Mechanical Keyboards vs Membrane — Which is Better for Typing?"
+- Each blog has: hero image, author, date, read time, tags, full article body
+- Add a "Typing Credibility" section on the homepage showing:
+    • Real-time stat: "X users typed Y words today"
+    • Badges: "Trusted by 10,000+ typists", "4.9★ Rating"
+    • Testimonials carousel with user photos and quotes
+    • Partner logos / press mentions section
+- Use Unsplash API for high-quality free images throughout
+
+─────────────────────────────────────────
+TECH STACK & CODE QUALITY
+─────────────────────────────────────────
+- Frontend: React.js + Tailwind CSS
+- Auth & DB: Firebase (Auth + Firestore) OR Supabase
+- Payments: Stripe
+- Charts: Recharts or Chart.js
+- Animations: Framer Motion
+- PWA: Workbox or custom service worker
+- Deploy-ready on Replit with no broken imports or missing dependencies
+- All components split into clean, reusable files
+- No console errors, no TypeErrors, no missing key warnings
+- Add loading states and error boundaries everywhere
+- Make the app feel FAST — lazy load images and heavy components
+
+The final result must feel like a world-class SaaS product comparable to 
+Keybr.com, MonkeyType.com, and Typing.com — but more modern, more 
+feature-rich, and more user-friendly. Every screen must look polished and 
+professional. Code quality must be production-grade.
