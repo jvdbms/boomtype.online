@@ -10,7 +10,7 @@ import { getLevel, getLevelColor } from "@/lib/words";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
-  visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.1, duration: 0.5, ease: "easeOut" } }),
+  visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.1, duration: 0.5, ease: "easeOut" as const } }),
 };
 
 const stagger = {
@@ -25,7 +25,7 @@ export default function Landing() {
   }, []);
 
   const { data: stats } = useGetStatsSummary();
-  const { data: leaderboard } = useGetLeaderboard({ query: { queryKey: getGetLeaderboardQueryKey({ limit: 5 }) } });
+  const { data: leaderboard } = useGetLeaderboard({ limit: 5 }, { query: { queryKey: getGetLeaderboardQueryKey({ limit: 5 }) } });
 
   const features = [
     { icon: Zap, title: "Real-Time WPM", desc: "Instant words-per-minute tracking with live accuracy feedback as you type." },

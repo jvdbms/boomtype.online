@@ -6,8 +6,6 @@ import { Button } from "@/components/ui/button";
 import { WORD_LIST } from "@/lib/words";
 import { useGameSounds } from "@/hooks/useGameSounds";
 import { getNickname, setNickname } from "@/lib/storage";
-import { useSubmitGameScore, getGetGameLeaderboardQueryKey } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
 
 const HIGH_SCORE_KEY = "boomtype_speedburst_hs";
 
@@ -42,8 +40,6 @@ export default function SpeedBurst() {
   const spawnRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const comboRef = useRef(0);
   const { playCorrect, playGameOver, playCombo } = useGameSounds();
-  const queryClient = useQueryClient();
-  const submitGameScore = useSubmitGameScore();
 
   bubblesRef.current = bubbles;
   comboRef.current = combo;
@@ -57,16 +53,8 @@ export default function SpeedBurst() {
   const submitToLeaderboard = useCallback((fs: number, nick: string) => {
     if (!nick.trim() || fs <= 0) return;
     setNickname(nick.trim());
-    submitGameScore.mutate(
-      { data: { nickname: nick.trim(), game: "speed-burst", score: fs } },
-      {
-        onSuccess: () => {
-          setScoreSubmitted(true);
-          queryClient.invalidateQueries({ queryKey: getGetGameLeaderboardQueryKey({ game: "speed-burst" }) });
-        },
-      },
-    );
-  }, [submitGameScore, queryClient]);
+    setScoreSubmitted(true);
+  }, []);
 
   const spawnBubble = useCallback(() => {
     const word = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
@@ -233,11 +221,11 @@ export default function SpeedBurst() {
                     />
                     <Button
                       onClick={handleManualSubmit}
-                      disabled={!nicknameInput.trim() || submitGameScore.isPending}
+                      disabled={!nicknameInput.trim()}
                       size="sm"
                       className="bg-purple-600 hover:bg-purple-700 text-white shrink-0"
                     >
-                      {submitGameScore.isPending ? "…" : "Submit"}
+                      Submit
                     </Button>
                   </div>
                 )}

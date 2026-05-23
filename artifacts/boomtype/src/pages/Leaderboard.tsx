@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { Trophy, Medal, CloudRain, Sword, Zap } from "lucide-react";
-import { useGetLeaderboard, getGetLeaderboardQueryKey, useGetGameLeaderboard, getGetGameLeaderboardQueryKey } from "@workspace/api-client-react";
-import type { GetLeaderboardParams, GetGameLeaderboardParams } from "@workspace/api-client-react";
+import { useGetLeaderboard, getGetLeaderboardQueryKey } from "@workspace/api-client-react";
+import type { GetLeaderboardParams } from "@workspace/api-client-react";
 import { getLevelColor } from "@/lib/words";
 import AdBanner from "@/components/AdBanner";
 
@@ -43,10 +43,11 @@ export default function Leaderboard() {
     query: { queryKey: getGetLeaderboardQueryKey(params) }
   });
 
-  const gameParams: GetGameLeaderboardParams = { game: activeGame, limit: 10 };
-  const { data: gameLeaderboard, isLoading: gameLoading } = useGetGameLeaderboard(gameParams, {
-    query: { queryKey: getGetGameLeaderboardQueryKey(gameParams) }
-  });
+  const gameHighScores: Record<GameId, number> = {
+    "word-rain":     parseFloat(localStorage.getItem("boomtype_wordrain_hs") || "0"),
+    "zombie-attack": parseFloat(localStorage.getItem("boomtype_zombie_hs") || "0"),
+    "speed-burst":   parseFloat(localStorage.getItem("boomtype_speedburst_hs") || "0"),
+  };
 
   const rankStyle = (rank: number) => {
     if (rank === 1) return { bg: "bg-yellow-500/15", text: "text-yellow-400", border: "border-yellow-500/30" };
@@ -224,32 +225,33 @@ export default function Leaderboard() {
             </Link>
           </div>
 
-          {gameLoading ? (
-            <div className="p-8 text-center">
-              <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-3" />
-              <p className="text-muted-foreground text-sm">Loading game rankings...</p>
-            </div>
-          ) : gameLeaderboard && gameLeaderboard.length > 0 ? (
+          {gameHighScores[activeGame] > 0 ? (
             <div className="divide-y divide-border/40">
-              {gameLeaderboard.map((entry, i) => {
-                const style = rankStyle(entry.rank);
+              {GAME_TABS.map((g) => {
+                const hs = parseFloat(localStorage.getItem(
+                  g.value === "word-rain" ? "boomtype_wordrain_hs"
+                  : g.value === "zombie-attack" ? "boomtype_zombie_hs"
+                  : "boomtype_speedburst_hs"
+                ) || "0");
+                if (hs <= 0) return null;
+                const style = g.value === activeGame ? rankStyle(1) : rankStyle(10);
                 return (
                   <motion.div
-                    key={`${entry.nickname}-${i}`}
+                    key={g.value}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.05 }}
                     className="flex items-center gap-4 p-4"
                   >
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black ${style.bg} ${style.text}`}>
-                      {entry.rank <= 3 ? <Medal className="w-4 h-4" /> : entry.rank}
+                      <Trophy className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold truncate">{entry.nickname}</div>
+                      <div className="font-semibold truncate">{g.label}</div>
+                      <div className="text-xs text-muted-foreground">Your best score</div>
                     </div>
                     <div className="text-right">
-                      <div className={`text-2xl font-black ${style.text}`}>{entry.score}</div>
-                      <div className="text-xs text-muted-foreground">{SCORE_UNIT[activeGame]}</div>
+                      <div className={`text-2xl font-black ${g.color}`}>{Math.round(hs)}</div>
+                      <div className="text-xs text-muted-foreground">{SCORE_UNIT[g.value]}</div>
                     </div>
                   </motion.div>
                 );
@@ -258,7 +260,7 @@ export default function Leaderboard() {
           ) : (
             <div className="p-12 text-center">
               <activeGameTab.icon className={`w-12 h-12 ${activeGameTab.color} opacity-30 mx-auto mb-3`} />
-              <p className="text-muted-foreground">No game scores yet.</p>
+              <p className="text-muted-foreground">No game scores yet — play to set a high score!</p>
               <Link href={`/games/${activeGame}`} className="inline-block mt-4 text-sm text-primary hover:underline">
                 Play {activeGameTab.label} →
               </Link>

@@ -6,8 +6,6 @@ import { Button } from "@/components/ui/button";
 import { WORD_LIST } from "@/lib/words";
 import { useGameSounds } from "@/hooks/useGameSounds";
 import { getNickname, setNickname } from "@/lib/storage";
-import { useSubmitGameScore, getGetGameLeaderboardQueryKey } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
 
 const HIGH_SCORE_KEY = "boomtype_zombie_hs";
 
@@ -46,8 +44,6 @@ export default function ZombieAttack() {
   const scoreRef = useRef(0);
   const finalScoreRef = useRef(0);
   const { playCorrect, playGameOver } = useGameSounds();
-  const queryClient = useQueryClient();
-  const submitGameScore = useSubmitGameScore();
 
   zombiesRef.current = zombies;
 
@@ -60,16 +56,8 @@ export default function ZombieAttack() {
   const submitToLeaderboard = useCallback((finalScore: number, nick: string) => {
     if (!nick.trim() || finalScore <= 0) return;
     setNickname(nick.trim());
-    submitGameScore.mutate(
-      { data: { nickname: nick.trim(), game: "zombie-attack", score: finalScore } },
-      {
-        onSuccess: () => {
-          setScoreSubmitted(true);
-          queryClient.invalidateQueries({ queryKey: getGetGameLeaderboardQueryKey({ game: "zombie-attack" }) });
-        },
-      },
-    );
-  }, [submitGameScore, queryClient]);
+    setScoreSubmitted(true);
+  }, []);
 
   const spawnZombie = useCallback(() => {
     const word = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
@@ -267,11 +255,11 @@ export default function ZombieAttack() {
                     />
                     <Button
                       onClick={handleManualSubmit}
-                      disabled={!nicknameInput.trim() || submitGameScore.isPending}
+                      disabled={!nicknameInput.trim()}
                       size="sm"
                       className="bg-red-600 hover:bg-red-700 text-white shrink-0"
                     >
-                      {submitGameScore.isPending ? "…" : "Submit"}
+                      Submit
                     </Button>
                   </div>
                 )}

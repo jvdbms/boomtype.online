@@ -138,6 +138,7 @@ export default function Lessons() {
   const [completed, setCompleted] = useState<number[]>([]);
   const [hoverLesson, setHoverLesson] = useState<number | null>(null);
   const [activeFilter, setActiveFilter] = useState<"all" | "free" | "premium">("all");
+  const [drillFilter, setDrillFilter] = useState<string>("all");
   const xp = getTotalXP();
 
   useEffect(() => {
@@ -147,10 +148,21 @@ export default function Lessons() {
     setCompleted(getCompleted());
   }, []);
 
+  const DRILL_TABS = [
+    { id: "all",         label: "All Drills",  emoji: "📋" },
+    { id: "home",        label: "Home Row",    emoji: "🏠" },
+    { id: "top",         label: "Top Row",     emoji: "⬆️" },
+    { id: "bottom",      label: "Bottom Row",  emoji: "⬇️" },
+    { id: "numbers",     label: "Numbers",     emoji: "🔢" },
+    { id: "punctuation", label: "Punctuation", emoji: "✍️" },
+    { id: "advanced",    label: "Code",        emoji: "💻" },
+  ];
+
   const hoveredLesson = lessons.find(l => l.id === hoverLesson);
-  const filtered = activeFilter === "all" ? lessons
-    : activeFilter === "free" ? lessons.filter(l => !l.premium)
-    : lessons.filter(l => l.premium);
+  const byDrill = drillFilter === "all" ? lessons : lessons.filter(l => l.category === drillFilter);
+  const filtered = (activeFilter === "all" ? byDrill
+    : activeFilter === "free" ? byDrill.filter(l => !l.premium)
+    : byDrill.filter(l => l.premium));
 
   const completedCount = completed.filter(id => lessons.find(l => l.id === id)).length;
   const freeCount = lessons.filter(l => !l.premium).length;
@@ -230,6 +242,31 @@ export default function Lessons() {
           )}
         </motion.div>
 
+        {/* Drill Category Tabs */}
+        <div className="mb-4">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-2">
+            <span className="w-3 h-px bg-border/60 inline-block" />
+            Filter by drill type
+            <span className="flex-1 h-px bg-border/60" />
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {DRILL_TABS.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setDrillFilter(tab.id)}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
+                  drillFilter === tab.id
+                    ? "bg-accent/15 text-accent border-accent/30"
+                    : "bg-card border-border/40 text-muted-foreground hover:text-foreground hover:border-border/70"
+                }`}
+              >
+                <span>{tab.emoji}</span>
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Filter Tabs */}
         <div className="flex gap-2 mb-6">
           {(["all", "free", "premium"] as const).map(f => (
@@ -242,7 +279,7 @@ export default function Lessons() {
                   : "bg-card border-border/40 text-muted-foreground hover:text-foreground"
               }`}
             >
-              {f === "all" ? `All (${lessons.length})` : f === "free" ? `Free (${freeCount})` : `Premium (${lessons.length - freeCount})`}
+              {f === "all" ? `All (${byDrill.length})` : f === "free" ? `Free (${byDrill.filter(l => !l.premium).length})` : `Premium (${byDrill.filter(l => l.premium).length})`}
             </button>
           ))}
         </div>

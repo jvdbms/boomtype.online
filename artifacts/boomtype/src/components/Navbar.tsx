@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Zap, Menu, X, Crown, Star, Flame, Gamepad2, Download, LayoutDashboard } from "lucide-react";
+import { Zap, Menu, X, Crown, Star, Flame, Gamepad2, Download, LayoutDashboard, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getTotalXP, getStreak } from "@/lib/storage";
 
@@ -18,6 +18,7 @@ export default function Navbar() {
     { href: "/lessons",     label: "Lessons" },
     { href: "/games",       label: "Games", icon: Gamepad2 },
     { href: "/blog",        label: "Blog" },
+    { href: "/payment",     label: "Payment", icon: CreditCard },
   ];
 
   return (
