@@ -22,6 +22,7 @@ interface UserContextType extends UserState {
   addXP: (xp: number) => Promise<void>;
   updateStreak: () => Promise<number>;
   setHighScore: (wpm: number) => Promise<void>;
+  resetProgress: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | null>(null);
@@ -104,8 +105,25 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const resetProgress = useCallback(async () => {
+    await AsyncStorage.multiRemove([
+      KEYS.NICKNAME,
+      KEYS.TOTAL_XP,
+      KEYS.STREAK_COUNT,
+      KEYS.STREAK_DATE,
+      KEYS.HIGH_SCORE,
+    ]);
+    setState({
+      nickname: "",
+      totalXP: 0,
+      streak: 0,
+      highScore: 0,
+      loaded: true,
+    });
+  }, []);
+
   return (
-    <UserContext.Provider value={{ ...state, setNickname, addXP, updateStreak, setHighScore }}>
+    <UserContext.Provider value={{ ...state, setNickname, addXP, updateStreak, setHighScore, resetProgress }}>
       {children}
     </UserContext.Provider>
   );

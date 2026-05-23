@@ -68,7 +68,8 @@ export default function HomeScreen() {
               styles.profileBtn,
               { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
             ]}
-            onPress={() => setShowNickname(true)}
+            onPress={() => router.push("/profile")}
+            testID="open-profile-btn"
           >
             <Feather name="user" size={18} color={colors.primary} />
           </Pressable>
