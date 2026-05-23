@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
+import { useUser } from "@/context/UserContext";
 import { getLevel, getLevelColor } from "@/constants/words";
 
 type Period = "daily" | "weekly" | "all_time";
@@ -29,7 +30,9 @@ const RANK_ICONS = ["award", "award", "award"] as const;
 export default function LeaderboardScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { nickname: myNickname } = useUser();
   const [period, setPeriod] = useState<Period>("all_time");
+  const normalizedMyNickname = myNickname.trim().toLowerCase();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
@@ -113,13 +116,24 @@ export default function LeaderboardScreen() {
             const isTop3 = item.rank <= 3;
             const rankColor = isTop3 ? RANK_COLORS[item.rank - 1] : colors.mutedForeground;
             const levelColor = getLevelColor(item.wpm);
+            const isMe =
+              !!normalizedMyNickname &&
+              item.nickname.trim().toLowerCase() === normalizedMyNickname;
             return (
               <View
                 style={[
                   styles.row,
                   {
-                    backgroundColor: isTop3 ? colors.card : "transparent",
-                    borderColor: isTop3 ? colors.border : "transparent",
+                    backgroundColor: isMe
+                      ? colors.primaryLight
+                      : isTop3
+                      ? colors.card
+                      : "transparent",
+                    borderColor: isMe
+                      ? colors.primary
+                      : isTop3
+                      ? colors.border
+                      : "transparent",
                     marginHorizontal: 16,
                     marginBottom: 8,
                   },
@@ -135,9 +149,18 @@ export default function LeaderboardScreen() {
                   )}
                 </View>
                 <View style={styles.nameWrap}>
-                  <Text style={[styles.nickname, { color: colors.foreground }]} numberOfLines={1}>
-                    {item.nickname}
-                  </Text>
+                  <View style={styles.nicknameRow}>
+                    <Text style={[styles.nickname, { color: colors.foreground }]} numberOfLines={1}>
+                      {item.nickname}
+                    </Text>
+                    {isMe && (
+                      <View style={[styles.youBadge, { backgroundColor: colors.primary }]}>
+                        <Text style={[styles.youBadgeText, { color: colors.primaryForeground }]}>
+                          YOU
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                   <View style={styles.metaRow}>
                     <Text style={[styles.level, { color: levelColor }]}>{getLevel(item.wpm)}</Text>
                     <Text style={[styles.meta, { color: colors.mutedForeground }]}>
@@ -239,10 +262,26 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
+  nicknameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   nickname: {
     fontSize: 15,
     fontWeight: "600",
     letterSpacing: -0.2,
+    flexShrink: 1,
+  },
+  youBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  youBadgeText: {
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.5,
   },
   metaRow: {
     flexDirection: "row",
