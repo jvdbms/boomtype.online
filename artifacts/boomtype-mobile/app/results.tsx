@@ -16,6 +16,9 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   Easing,
+  FadeInDown,
+  FadeInUp,
+  ZoomIn,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -157,19 +160,33 @@ export default function ResultsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Top result hero */}
-        <View style={styles.heroSection}>
+        <Animated.View
+          entering={FadeInDown.duration(500).easing(Easing.out(Easing.cubic))}
+          style={styles.heroSection}
+        >
           <LinearGradient
             colors={[`${levelColor}30`, `${colors.background}00`]}
             style={styles.heroGradient}
           />
-          <Text style={[styles.heroLabel, { color: levelColor }]}>
+          <Animated.Text
+            entering={FadeInUp.delay(100).duration(400)}
+            style={[styles.heroLabel, { color: levelColor }]}
+          >
             {level}
-          </Text>
-          <Text style={[styles.wpmHero, { color: colors.foreground }]}>
+          </Animated.Text>
+          <Animated.Text
+            entering={ZoomIn.delay(200).duration(600).easing(Easing.out(Easing.back(1.4)))}
+            style={[styles.wpmHero, { color: colors.foreground }]}
+          >
             {Math.round(wpm)}
-          </Text>
-          <Text style={[styles.wpmUnit, { color: colors.mutedForeground }]}>words per minute</Text>
-        </View>
+          </Animated.Text>
+          <Animated.Text
+            entering={FadeInUp.delay(450).duration(400)}
+            style={[styles.wpmUnit, { color: colors.mutedForeground }]}
+          >
+            words per minute
+          </Animated.Text>
+        </Animated.View>
 
         {/* Stats grid */}
         <View style={styles.statsGrid}>
@@ -178,20 +195,24 @@ export default function ResultsScreen() {
             { icon: "x-circle", label: "Mistakes", value: mistakes, color: mistakes > 0 ? colors.destructive : colors.mutedForeground },
             { icon: "list", label: "Words typed", value: correctWords, color: colors.primary },
             { icon: "clock", label: "Duration", value: `${duration}s`, color: colors.accent },
-          ].map((stat) => (
-            <View
+          ].map((stat, i) => (
+            <Animated.View
               key={stat.label}
+              entering={FadeInDown.delay(600 + i * 90).duration(420).easing(Easing.out(Easing.cubic))}
               style={[styles.statBox, { backgroundColor: colors.card, borderColor: colors.border }]}
             >
               <Feather name={stat.icon as any} size={18} color={stat.color} />
               <Text style={[styles.statValue, { color: colors.foreground }]}>{stat.value}</Text>
               <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>{stat.label}</Text>
-            </View>
+            </Animated.View>
           ))}
         </View>
 
         {/* XP earned */}
-        <View style={[styles.xpCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Animated.View
+          entering={FadeInDown.delay(1000).duration(450).easing(Easing.out(Easing.cubic))}
+          style={[styles.xpCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+        >
           <View style={styles.xpHeader}>
             <View style={[styles.xpIcon, { backgroundColor: colors.primaryLight }]}>
               <Feather name="star" size={20} color={colors.primary} />
@@ -222,18 +243,24 @@ export default function ResultsScreen() {
             />
           </View>
           {leveledUp && (
-            <View style={styles.levelUpRow}>
+            <Animated.View
+              entering={ZoomIn.delay(1400).duration(400).easing(Easing.out(Easing.back(1.6)))}
+              style={styles.levelUpRow}
+            >
               <Feather name="trending-up" size={14} color={colors.success} />
               <Text style={[styles.levelUpText, { color: colors.success }]}>
                 Level up! You reached LVL {xpLevelAfter.level}
               </Text>
-            </View>
+            </Animated.View>
           )}
-        </View>
+        </Animated.View>
 
         {/* Submit status */}
         {nickname ? (
-          <View style={[styles.submitStatus, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Animated.View
+            entering={FadeInDown.delay(1150).duration(420)}
+            style={[styles.submitStatus, { backgroundColor: colors.card, borderColor: colors.border }]}
+          >
             {isPending ? (
               <>
                 <ActivityIndicator size="small" color={colors.primary} />
@@ -256,18 +283,24 @@ export default function ResultsScreen() {
                 </Text>
               </>
             ) : null}
-          </View>
+          </Animated.View>
         ) : (
-          <View style={[styles.submitStatus, { backgroundColor: colors.accentLight, borderColor: colors.accent }]}>
+          <Animated.View
+            entering={FadeInDown.delay(1150).duration(420)}
+            style={[styles.submitStatus, { backgroundColor: colors.accentLight, borderColor: colors.accent }]}
+          >
             <Feather name="award" size={16} color={colors.accent} />
             <Text style={[styles.submitText, { color: colors.accent }]}>
               Set a nickname on the Home tab to join the leaderboard
             </Text>
-          </View>
+          </Animated.View>
         )}
 
         {/* Actions */}
-        <View style={styles.actions}>
+        <Animated.View
+          entering={FadeInDown.delay(1300).duration(420)}
+          style={styles.actions}
+        >
           <Pressable
             style={({ pressed }) => [
               styles.retryBtn,
@@ -296,7 +329,7 @@ export default function ResultsScreen() {
             <Feather name="home" size={18} color={colors.foreground} />
             <Text style={[styles.homeBtnText, { color: colors.foreground }]}>Home</Text>
           </Pressable>
-        </View>
+        </Animated.View>
       </ScrollView>
     </View>
   );

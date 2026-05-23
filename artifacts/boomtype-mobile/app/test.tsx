@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Keyboard,
   Platform,
@@ -12,11 +12,13 @@ import {
   View,
 } from "react-native";
 import Animated, {
+  Easing,
   FadeIn,
   FadeOut,
   useAnimatedStyle,
   useSharedValue,
   withSequence,
+  withSpring,
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -35,6 +37,37 @@ export default function TestScreen() {
   const test = useTypingTest(duration);
   const inputRef = useRef<TextInput>(null);
   const shakeVal = useSharedValue(0);
+  const wpmScale = useSharedValue(1);
+  const prevInputRef = useRef("");
+  const prevWordIndexRef = useRef(0);
+
+  // Smooth animated WPM display
+  const animatedWpm = useSharedValue(0);
+  const [displayWpm, setDisplayWpm] = useState(0);
+
+  useEffect(() => {
+    animatedWpm.value = withTiming(test.wpm, {
+      duration: 600,
+      easing: Easing.out(Easing.cubic),
+    });
+    if (test.wpm > 0) {
+      wpmScale.value = withSequence(
+        withTiming(1.15, { duration: 120, easing: Easing.out(Easing.quad) }),
+        withSpring(1, { damping: 8, stiffness: 180 }),
+      );
+    }
+  }, [test.wpm]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setDisplayWpm(Math.round(animatedWpm.value));
+    }, 32);
+    return () => clearInterval(id);
+  }, []);
+
+  const wpmAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: wpmScale.value }],
+  }));
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
@@ -63,20 +96,43 @@ export default function TestScreen() {
   }, [test.phase]);
 
   const handleInput = (text: string) => {
+    // Reset prev-input tracking when the word index advances.
+    if (prevWordIndexRef.current !== test.currentWordIndex) {
+      prevInputRef.current = "";
+      prevWordIndexRef.current = test.currentWordIndex;
+    }
+
+    const prev = prevInputRef.current;
     const lastChar = text.slice(-1);
-    if (lastChar === " " && text.trim().length > 0) {
-      const typed = text.trim();
-      const expected = test.words[test.currentWordIndex];
-      if (typed !== expected) {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        shakeVal.value = withSequence(
-          withTiming(-6, { duration: 50 }),
-          withTiming(6, { duration: 50 }),
-          withTiming(-4, { duration: 50 }),
-          withTiming(0, { duration: 50 })
-        );
+    const isInsertion = text.length > prev.length;
+    const expectedWord = test.words[test.currentWordIndex] ?? "";
+
+    if (isInsertion && Platform.OS !== "web") {
+      if (lastChar === " ") {
+        const typed = text.trim();
+        if (typed.length > 0 && typed !== expectedWord) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          shakeVal.value = withSequence(
+            withTiming(-6, { duration: 50 }),
+            withTiming(6, { duration: 50 }),
+            withTiming(-4, { duration: 50 }),
+            withTiming(0, { duration: 50 }),
+          );
+        } else if (typed.length > 0) {
+          Haptics.selectionAsync();
+        }
+      } else {
+        const charIdx = text.length - 1;
+        const expectedChar = expectedWord[charIdx];
+        if (expectedChar !== undefined && lastChar === expectedChar) {
+          Haptics.selectionAsync();
+        } else {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
       }
     }
+
+    prevInputRef.current = text.endsWith(" ") ? "" : text;
     test.handleInput(text);
   };
 
@@ -104,10 +160,10 @@ export default function TestScreen() {
           <Text style={[styles.timerNum, { color: timerColor }]}>{test.timeLeft}</Text>
           <Text style={[styles.timerLabel, { color: colors.mutedForeground }]}>sec</Text>
         </View>
-        <View style={styles.wpmWrap}>
-          <Text style={[styles.wpmNum, { color: colors.primary }]}>{test.wpm}</Text>
+        <Animated.View style={[styles.wpmWrap, wpmAnimStyle]}>
+          <Text style={[styles.wpmNum, { color: colors.primary }]}>{displayWpm}</Text>
           <Text style={[styles.wpmLabel, { color: colors.mutedForeground }]}>WPM</Text>
-        </View>
+        </Animated.View>
       </View>
 
       {/* Progress bar */}
