@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Zap, Menu, X, Crown, Star, Flame, Gamepad2, Download, LayoutDashboard, CreditCard } from "lucide-react";
+import { Zap, Menu, X, Crown, Star, Flame, Gamepad2, Download, LayoutDashboard, CreditCard, MonitorDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getTotalXP, getStreak } from "@/lib/storage";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [location] = useLocation();
+  const { canInstall, isInstalled, promptInstall } = usePWAInstall();
 
   const xp = getTotalXP();
   const { count: streak } = getStreak();
@@ -67,6 +69,17 @@ export default function Navbar() {
                 <Flame className="w-3 h-3" />{streak}d streak
               </div>
             )}
+            {canInstall && !isInstalled && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => promptInstall()}
+                className="border-primary/40 bg-primary/5 hover:bg-primary/10 text-primary gap-1.5"
+                data-testid="button-install-pwa"
+              >
+                <MonitorDown className="w-3.5 h-3.5" />Install App
+              </Button>
+            )}
             <Link href="/download">
               <Button size="sm" variant="outline" className="border-border/60 hover:bg-white/5 gap-1.5 text-muted-foreground hover:text-foreground">
                 <Download className="w-3.5 h-3.5" />Get App
@@ -121,6 +134,15 @@ export default function Navbar() {
                 </Link>
               );
             })}
+            {canInstall && !isInstalled && (
+              <Button
+                onClick={() => { promptInstall(); setIsOpen(false); }}
+                variant="outline"
+                className="w-full mt-2 border-primary/40 bg-primary/5 text-primary gap-1.5"
+              >
+                <MonitorDown className="w-3.5 h-3.5" />Install BoomType App
+              </Button>
+            )}
             <Link href="/download" onClick={() => setIsOpen(false)}>
               <Button variant="outline" className="w-full mt-2 border-border/60 gap-1.5 text-muted-foreground">
                 <Download className="w-3.5 h-3.5" />Download Desktop App
