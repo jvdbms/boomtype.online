@@ -14,9 +14,22 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from "react-native-reanimated";
 import { useColors } from "@/hooks/useColors";
 import { useUser } from "@/context/UserContext";
-import { calculateXP, getLevel, getLevelColor } from "@/constants/words";
+import {
+  calculateXP,
+  getLevel,
+  getLevelColor,
+  getXPLevel,
+  XP_PER_LEVEL,
+} from "@/constants/words";
 
 export default function ResultsScreen() {
   const colors = useColors();
@@ -36,7 +49,7 @@ export default function ResultsScreen() {
   const duration = parseInt(params.duration ?? "30", 10);
   const correctWords = parseInt(params.correct ?? "0", 10);
 
-  const { nickname, addXP, updateStreak, setHighScore } = useUser();
+  const { nickname, totalXP, addXP, updateStreak, setHighScore } = useUser();
   const [newStreak, setNewStreak] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState(false);
@@ -45,6 +58,59 @@ export default function ResultsScreen() {
   const xpEarned = calculateXP(wpm, accuracy, duration);
   const level = getLevel(wpm);
   const levelColor = getLevelColor(wpm);
+
+  // Snapshot XP before this run's XP was added, so we can animate from
+  // the pre-test value to the new total.
+  const xpBefore = useRef(totalXP).current;
+  const xpAfter = xpBefore + xpEarned;
+  const xpLevelBefore = getXPLevel(xpBefore);
+  const xpLevelAfter = getXPLevel(xpAfter);
+  const leveledUp = xpLevelAfter.level > xpLevelBefore.level;
+
+  // Animated XP count + progress fill
+  const animatedXP = useSharedValue(xpBefore);
+  const animatedProgress = useSharedValue(xpLevelBefore.progress);
+  const [displayXP, setDisplayXP] = useState(xpBefore);
+
+  useEffect(() => {
+    animatedXP.value = withDelay(
+      350,
+      withTiming(xpAfter, { duration: 1200, easing: Easing.out(Easing.cubic) }),
+    );
+    // If they leveled up, fill to 100% then snap to remainder.
+    if (leveledUp) {
+      animatedProgress.value = withDelay(
+        350,
+        withTiming(1, { duration: 700, easing: Easing.out(Easing.cubic) }, (finished) => {
+          if (finished) {
+            animatedProgress.value = 0;
+            animatedProgress.value = withTiming(xpLevelAfter.progress, {
+              duration: 500,
+              easing: Easing.out(Easing.cubic),
+            });
+          }
+        }),
+      );
+    } else {
+      animatedProgress.value = withDelay(
+        350,
+        withTiming(xpLevelAfter.progress, {
+          duration: 1200,
+          easing: Easing.out(Easing.cubic),
+        }),
+      );
+    }
+    const id = setInterval(() => {
+      setDisplayXP(Math.round(animatedXP.value));
+    }, 32);
+    return () => clearInterval(id);
+  }, []);
+
+  const progressBarStyle = useAnimatedStyle(() => ({
+    width: `${Math.max(4, animatedProgress.value * 100)}%`,
+  }));
+
+  const xpThisRun = Math.max(0, displayXP - xpBefore);
 
   const { mutate: submitScore, isPending } = useSubmitScore();
 
@@ -126,17 +192,41 @@ export default function ResultsScreen() {
 
         {/* XP earned */}
         <View style={[styles.xpCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={[styles.xpIcon, { backgroundColor: colors.primaryLight }]}>
-            <Feather name="star" size={20} color={colors.primary} />
+          <View style={styles.xpHeader}>
+            <View style={[styles.xpIcon, { backgroundColor: colors.primaryLight }]}>
+              <Feather name="star" size={20} color={colors.primary} />
+            </View>
+            <View style={styles.xpText}>
+              <Text style={[styles.xpAmount, { color: colors.primary }]}>+{xpThisRun} XP</Text>
+              <Text style={[styles.xpLabel, { color: colors.mutedForeground }]}>earned this test</Text>
+            </View>
+            {newStreak !== null && newStreak > 0 && (
+              <View style={[styles.streakBadge, { backgroundColor: "#f59e0b22", borderColor: "#f59e0b44" }]}>
+                <Feather name="zap" size={14} color="#f59e0b" />
+                <Text style={[styles.streakText, { color: "#f59e0b" }]}>{newStreak}d</Text>
+              </View>
+            )}
           </View>
-          <View style={styles.xpText}>
-            <Text style={[styles.xpAmount, { color: colors.primary }]}>+{xpEarned} XP</Text>
-            <Text style={[styles.xpLabel, { color: colors.mutedForeground }]}>earned this test</Text>
+
+          <View style={styles.levelMetaRow}>
+            <Text style={[styles.levelMeta, { color: colors.foreground }]}>
+              LVL {leveledUp ? xpLevelAfter.level : xpLevelBefore.level}
+            </Text>
+            <Text style={[styles.levelMetaMuted, { color: colors.mutedForeground }]}>
+              {displayXP % XP_PER_LEVEL} / {XP_PER_LEVEL}
+            </Text>
           </View>
-          {newStreak !== null && newStreak > 0 && (
-            <View style={[styles.streakBadge, { backgroundColor: "#f59e0b22", borderColor: "#f59e0b44" }]}>
-              <Feather name="zap" size={14} color="#f59e0b" />
-              <Text style={[styles.streakText, { color: "#f59e0b" }]}>{newStreak}d</Text>
+          <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
+            <Animated.View
+              style={[styles.progressFill, { backgroundColor: colors.primary }, progressBarStyle]}
+            />
+          </View>
+          {leveledUp && (
+            <View style={styles.levelUpRow}>
+              <Feather name="trending-up" size={14} color={colors.success} />
+              <Text style={[styles.levelUpText, { color: colors.success }]}>
+                Level up! You reached LVL {xpLevelAfter.level}
+              </Text>
             </View>
           )}
         </View>
@@ -276,10 +366,46 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     padding: 16,
+    gap: 12,
+    marginBottom: 12,
+  },
+  xpHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    marginBottom: 12,
+  },
+  levelMetaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  levelMeta: {
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+  levelMetaMuted: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  progressTrack: {
+    height: 8,
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  levelUpRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 2,
+  },
+  levelUpText: {
+    fontSize: 12,
+    fontWeight: "700",
   },
   xpIcon: {
     width: 44,

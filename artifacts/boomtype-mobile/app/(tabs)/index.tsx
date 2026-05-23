@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -16,7 +16,7 @@ import { NicknameModal } from "@/components/NicknameModal";
 import { StatBadge } from "@/components/StatBadge";
 import { useUser } from "@/context/UserContext";
 import { useColors } from "@/hooks/useColors";
-import { getLevel, getLevelColor } from "@/constants/words";
+import { getLevel, getLevelColor, getXPLevel } from "@/constants/words";
 
 const DURATIONS = [
   { label: "30s", value: 30, icon: "zap" as const },
@@ -32,6 +32,12 @@ export default function HomeScreen() {
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
+  useEffect(() => {
+    if (loaded && !nickname) {
+      setShowNickname(true);
+    }
+  }, [loaded, nickname]);
+
   const handleStart = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     router.push({ pathname: "/test", params: { duration: selectedDuration } });
@@ -39,6 +45,7 @@ export default function HomeScreen() {
 
   const level = getLevel(highScore);
   const levelColor = getLevelColor(highScore);
+  const xpLevel = getXPLevel(totalXP);
 
   if (!loaded) return <View style={[styles.root, { backgroundColor: colors.background }]} />;
 
@@ -78,16 +85,43 @@ export default function HomeScreen() {
           <StatBadge label="Total XP" value={totalXP > 999 ? `${Math.floor(totalXP / 1000)}k` : totalXP} color={colors.success} />
         </View>
 
-        {/* Level badge */}
-        {highScore > 0 && (
-          <View style={[styles.levelBadge, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={[styles.levelDot, { backgroundColor: levelColor }]} />
-            <Text style={[styles.levelText, { color: colors.mutedForeground }]}>
-              Level:{" "}
-              <Text style={{ color: levelColor, fontWeight: "700" }}>{level}</Text>
+        {/* Level / XP progress card */}
+        <View style={[styles.levelCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={styles.levelRow}>
+            <View style={styles.levelLeft}>
+              <View style={[styles.levelChip, { backgroundColor: colors.primaryLight }]}>
+                <Text style={[styles.levelChipText, { color: colors.primary }]}>
+                  LVL {xpLevel.level}
+                </Text>
+              </View>
+              {highScore > 0 && (
+                <View style={styles.tierWrap}>
+                  <View style={[styles.levelDot, { backgroundColor: levelColor }]} />
+                  <Text style={[styles.levelText, { color: colors.mutedForeground }]}>
+                    <Text style={{ color: levelColor, fontWeight: "700" }}>{level}</Text>
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text style={[styles.xpToNext, { color: colors.mutedForeground }]}>
+              {xpLevel.xpToNext} XP to LVL {xpLevel.level + 1}
             </Text>
           </View>
-        )}
+          <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
+            <View
+              style={[
+                styles.progressFill,
+                {
+                  width: `${Math.max(4, xpLevel.progress * 100)}%`,
+                  backgroundColor: colors.primary,
+                },
+              ]}
+            />
+          </View>
+          <Text style={[styles.progressMeta, { color: colors.mutedForeground }]}>
+            {xpLevel.xpInLevel} / 500 XP this level
+          </Text>
+        </View>
 
         {/* Duration selector */}
         <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>Test duration</Text>
@@ -212,16 +246,40 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 12,
   },
-  levelBadge: {
+  levelCard: {
     marginHorizontal: 20,
     marginBottom: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 10,
+  },
+  levelRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    borderWidth: 1,
+    justifyContent: "space-between",
     gap: 8,
+  },
+  levelLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  levelChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  levelChipText: {
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+  tierWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   levelDot: {
     width: 8,
@@ -230,6 +288,23 @@ const styles = StyleSheet.create({
   },
   levelText: {
     fontSize: 13,
+    fontWeight: "500",
+  },
+  xpToNext: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  progressTrack: {
+    height: 8,
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  progressMeta: {
+    fontSize: 11,
     fontWeight: "500",
   },
   sectionLabel: {

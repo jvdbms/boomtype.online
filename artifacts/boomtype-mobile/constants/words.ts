@@ -58,3 +58,20 @@ export function getLevelColor(wpm: number): string {
 export function calculateXP(wpm: number, accuracy: number, duration: number): number {
   return Math.round(wpm * (accuracy / 100) * (duration / 30));
 }
+
+export const XP_PER_LEVEL = 500;
+
+export interface XPLevelInfo {
+  level: number;
+  xpInLevel: number;
+  xpToNext: number;
+  progress: number;
+}
+
+export function getXPLevel(totalXP: number): XPLevelInfo {
+  const safeXP = Math.max(0, totalXP);
+  const level = Math.floor(safeXP / XP_PER_LEVEL) + 1;
+  const xpInLevel = safeXP % XP_PER_LEVEL;
+  const xpToNext = XP_PER_LEVEL - xpInLevel;
+  return { level, xpInLevel, xpToNext, progress: xpInLevel / XP_PER_LEVEL };
+}
