@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { WORD_LIST } from "@/lib/words";
 import { useGameSounds } from "@/hooks/useGameSounds";
 import { getNickname, setNickname } from "@/lib/storage";
+import { useSubmitGameScore } from "@workspace/api-client-react";
 
 const HIGH_SCORE_KEY = "boomtype_wordrain_hs";
 
@@ -42,6 +43,9 @@ export default function WordRain() {
   const scoreRef = useRef(0);
   const finalScoreRef = useRef(0);
   const { playCorrect, playGameOver } = useGameSounds();
+  const { mutate: submitScore } = useSubmitGameScore({
+    mutation: { onSuccess: () => setScoreSubmitted(true) },
+  });
 
   wordsRef.current = words;
   gameStateRef.current = gameState;
@@ -58,8 +62,8 @@ export default function WordRain() {
   const submitToLeaderboard = useCallback((finalScore: number, nick: string) => {
     if (!nick.trim() || finalScore <= 0) return;
     setNickname(nick.trim());
-    setScoreSubmitted(true);
-  }, []);
+    submitScore({ data: { nickname: nick.trim(), game: "word-rain", score: finalScore } });
+  }, [submitScore]);
 
   const spawnWord = useCallback(() => {
     const word = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];

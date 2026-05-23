@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { WORD_LIST } from "@/lib/words";
 import { useGameSounds } from "@/hooks/useGameSounds";
 import { getNickname, setNickname } from "@/lib/storage";
+import { useSubmitGameScore } from "@workspace/api-client-react";
 
 const HIGH_SCORE_KEY = "boomtype_speedburst_hs";
 
@@ -40,6 +41,9 @@ export default function SpeedBurst() {
   const spawnRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const comboRef = useRef(0);
   const { playCorrect, playGameOver, playCombo } = useGameSounds();
+  const { mutate: submitScore } = useSubmitGameScore({
+    mutation: { onSuccess: () => setScoreSubmitted(true) },
+  });
 
   bubblesRef.current = bubbles;
   comboRef.current = combo;
@@ -53,8 +57,8 @@ export default function SpeedBurst() {
   const submitToLeaderboard = useCallback((fs: number, nick: string) => {
     if (!nick.trim() || fs <= 0) return;
     setNickname(nick.trim());
-    setScoreSubmitted(true);
-  }, []);
+    submitScore({ data: { nickname: nick.trim(), game: "speed-burst", score: fs } });
+  }, [submitScore]);
 
   const spawnBubble = useCallback(() => {
     const word = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { WORD_LIST } from "@/lib/words";
 import { useGameSounds } from "@/hooks/useGameSounds";
 import { getNickname, setNickname } from "@/lib/storage";
+import { useSubmitGameScore } from "@workspace/api-client-react";
 
 const HIGH_SCORE_KEY = "boomtype_zombie_hs";
 
@@ -44,6 +45,9 @@ export default function ZombieAttack() {
   const scoreRef = useRef(0);
   const finalScoreRef = useRef(0);
   const { playCorrect, playGameOver } = useGameSounds();
+  const { mutate: submitScore } = useSubmitGameScore({
+    mutation: { onSuccess: () => setScoreSubmitted(true) },
+  });
 
   zombiesRef.current = zombies;
 
@@ -56,8 +60,8 @@ export default function ZombieAttack() {
   const submitToLeaderboard = useCallback((finalScore: number, nick: string) => {
     if (!nick.trim() || finalScore <= 0) return;
     setNickname(nick.trim());
-    setScoreSubmitted(true);
-  }, []);
+    submitScore({ data: { nickname: nick.trim(), game: "zombie-attack", score: finalScore } });
+  }, [submitScore]);
 
   const spawnZombie = useCallback(() => {
     const word = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
