@@ -1,8 +1,19 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { Gamepad2, CloudRain, Sword, Zap, Star, Trophy, Layers, Wrench, AlignJustify, Wind } from "lucide-react";
+import { Gamepad2, CloudRain, Sword, Zap, Star, Trophy, Layers, Wrench, AlignJustify, Wind, Lock, Award, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GAME_BADGE_DEFS, getGameBadges, getLeaderboardSubmitCount } from "@/lib/storage";
+
+interface TypingBadgeDef {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  earned: boolean;
+  progress?: string;
+}
 
 const HIGH_SCORE_KEYS: Record<string, string> = {
   "word-rain":      "boomtype_wordrain_hs",
@@ -146,6 +157,8 @@ const DIFFICULTY_ORDER: Record<string, number> = { Easy: 0, Medium: 1, Hard: 2 }
 export default function Games() {
   const [highScores, setHighScores] = useState<Record<string, number>>({});
   const [filter, setFilter] = useState<"all" | "Easy" | "Medium" | "Hard">("all");
+  const [earnedBadgeIds, setEarnedBadgeIds] = useState<string[]>([]);
+  const [lbCount, setLbCount] = useState(0);
 
   useEffect(() => {
     document.title = "Typing Games | BoomType — Play & Improve";
@@ -157,7 +170,30 @@ export default function Games() {
       if (val > 0) scores[gameId] = val;
     }
     setHighScores(scores);
+    setEarnedBadgeIds(getGameBadges());
+    setLbCount(getLeaderboardSubmitCount());
   }, []);
+
+  const gameBadgeList = Object.values(GAME_BADGE_DEFS).map(def => ({
+    ...def,
+    earned: earnedBadgeIds.includes(def.id),
+  }));
+  const earnedGameCount = gameBadgeList.filter(b => b.earned).length;
+
+  const typingBadges: TypingBadgeDef[] = [
+    {
+      id: "pro-typist",
+      name: "Pro Typist",
+      description: "Submit 10 scores to the leaderboard",
+      icon: "👑",
+      color: "text-yellow-400",
+      earned: lbCount >= 10,
+      progress: lbCount < 10 ? `${lbCount} / 10 submissions` : undefined,
+    },
+  ];
+  const earnedTypingCount = typingBadges.filter(b => b.earned).length;
+  const totalEarned = earnedGameCount + earnedTypingCount;
+  const totalBadges = gameBadgeList.length + typingBadges.length;
 
   const filtered = filter === "all" ? GAMES : GAMES.filter(g => g.difficulty === filter);
 
@@ -234,6 +270,117 @@ export default function Games() {
             );
           })}
         </div>
+
+        {/* Badge Showcase Wall */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="rounded-2xl bg-card border border-border/60 p-6 mb-8"
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <Award className="w-5 h-5 text-yellow-400" />
+            <h2 className="text-lg font-bold">Badge Wall</h2>
+            <span className="ml-auto text-xs font-semibold text-muted-foreground">
+              {totalEarned} / {totalBadges} earned
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground mb-5">
+            Collect badges by mastering games and climbing the leaderboard.
+          </p>
+
+          {/* Progress bar */}
+          <div className="h-1.5 rounded-full bg-white/5 mb-6 overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${(totalEarned / totalBadges) * 100}%` }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="h-full bg-gradient-to-r from-primary to-accent"
+            />
+          </div>
+
+          {/* Typing badges */}
+          <div className="mb-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Crown className="w-3.5 h-3.5 text-yellow-400" />
+              <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Typing Test</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {typingBadges.map((badge, i) => (
+                <motion.div
+                  key={badge.id}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.04 }}
+                  title={badge.description}
+                  className={`relative rounded-xl border p-3 flex items-start gap-3 transition-all ${
+                    badge.earned
+                      ? "bg-white/5 border-border/60"
+                      : "bg-black/20 border-border/30 opacity-60 grayscale"
+                  }`}
+                >
+                  <div className="text-2xl shrink-0 relative">
+                    <span className={badge.earned ? "" : "opacity-50"}>{badge.icon}</span>
+                    {!badge.earned && (
+                      <Lock className="absolute -bottom-1 -right-1 w-3 h-3 text-muted-foreground bg-card rounded-full p-0.5" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className={`text-xs font-bold truncate ${badge.earned ? badge.color : "text-muted-foreground"}`}>
+                      {badge.name}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                      {badge.description}
+                    </div>
+                    {badge.progress && (
+                      <div className="text-[10px] text-primary/70 font-semibold mt-1">{badge.progress}</div>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          {/* Game badges */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Gamepad2 className="w-3.5 h-3.5 text-primary" />
+              <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Mini-Games</span>
+              <span className="text-[10px] text-muted-foreground/70">({earnedGameCount}/{gameBadgeList.length})</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {gameBadgeList.map((badge, i) => (
+                <motion.div
+                  key={badge.id}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.04 }}
+                  title={badge.description}
+                  className={`relative rounded-xl border p-3 flex items-start gap-3 transition-all ${
+                    badge.earned
+                      ? "bg-white/5 border-border/60 hover:border-border"
+                      : "bg-black/20 border-border/30 opacity-60 grayscale hover:opacity-80"
+                  }`}
+                >
+                  <div className="text-2xl shrink-0 relative">
+                    <span className={badge.earned ? "" : "opacity-50"}>{badge.icon}</span>
+                    {!badge.earned && (
+                      <Lock className="absolute -bottom-1 -right-1 w-3 h-3 text-muted-foreground bg-card rounded-full p-0.5" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className={`text-xs font-bold truncate ${badge.earned ? badge.color : "text-muted-foreground"}`}>
+                      {badge.name}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                      {badge.description}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
 
         {/* Why play */}
         <motion.div
