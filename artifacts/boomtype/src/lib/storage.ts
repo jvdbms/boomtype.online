@@ -9,6 +9,7 @@ const STORAGE_KEYS = {
   MISTAKE_HEATMAP:    "boomtype_mistake_heatmap",
   LB_SUBMIT_COUNT:    "boomtype_lb_submit_count",
   GAME_BADGES:        "boomtype_game_badges",
+  GAME_XP:            "boomtype_game_xp",
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -70,6 +71,19 @@ export function getTotalXP(): number {
 
 export function addXP(xp: number): void {
   localStorage.setItem(STORAGE_KEYS.TOTAL_XP, (getTotalXP() + xp).toString());
+}
+
+export function getGameXP(): number {
+  return parseInt(localStorage.getItem(STORAGE_KEYS.GAME_XP) || "0", 10);
+}
+
+export function addGameXP(xp: number): void {
+  localStorage.setItem(STORAGE_KEYS.GAME_XP, (getGameXP() + xp).toString());
+  addXP(xp);
+}
+
+export function getTypingXP(): number {
+  return Math.max(0, getTotalXP() - getGameXP());
 }
 
 // ─────────────────────────────────────────────────────────────

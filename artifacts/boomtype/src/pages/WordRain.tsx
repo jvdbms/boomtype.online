@@ -5,7 +5,7 @@ import { ArrowLeft, RefreshCw, CloudRain, Trophy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WORD_LIST } from "@/lib/words";
 import { useGameSounds } from "@/hooks/useGameSounds";
-import { getNickname, setNickname, addXP, awardGameBadge, calculateGameXP } from "@/lib/storage";
+import { getNickname, setNickname, addGameXP, awardGameBadge, calculateGameXP } from "@/lib/storage";
 import { useSubmitGameScore } from "@workspace/api-client-react";
 
 const HIGH_SCORE_KEY = "boomtype_wordrain_hs";
@@ -128,7 +128,7 @@ export default function WordRain() {
             setHighScore(fs);
             setNewHighScore(true);
           }
-          addXP(calculateGameXP("word-rain", fs));
+          addGameXP(calculateGameXP("word-rain", fs));
           if (fs >= 30) awardGameBadge("word-warden");
           const storedNick = getNickname();
           if (storedNick) {

@@ -5,7 +5,7 @@ import { ArrowLeft, Trophy, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WORD_LIST, LESSON_WORDS } from "@/lib/words";
 import { useGameSounds } from "@/hooks/useGameSounds";
-import { addXP, awardGameBadge, calculateGameXP } from "@/lib/storage";
+import { addGameXP, awardGameBadge, calculateGameXP } from "@/lib/storage";
 
 const HS_KEY = "boomtype_bubblepop_hs";
 const BUBBLE_COLORS = [
@@ -138,7 +138,7 @@ export default function BubblePop() {
       localStorage.setItem(HS_KEY, score.toString());
     }
     if (gameState === "over") {
-      addXP(calculateGameXP("bubble-pop", score));
+      addGameXP(calculateGameXP("bubble-pop", score));
       if (score >= 100) awardGameBadge("bubble-master");
     }
   }, [gameState, score]);

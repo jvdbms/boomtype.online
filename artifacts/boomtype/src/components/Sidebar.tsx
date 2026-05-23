@@ -8,7 +8,7 @@ import {
   CloudRain, Sword, CircleDot, Waves, Wrench, Layers, Timer, Wind,
   Menu, BarChart2
 } from "lucide-react";
-import { getTotalXP, getStreak, getHighScore } from "@/lib/storage";
+import { getTotalXP, getStreak, getHighScore, getGameXP } from "@/lib/storage";
 
 const COMPLETED_KEY = "boomtype_completed_lessons";
 function getCompleted(): number[] {
@@ -57,12 +57,14 @@ interface SidebarProps {
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const [location] = useLocation();
   const [xp, setXp] = useState(0);
+  const [gameXp, setGameXp] = useState(0);
   const [streak, setStreak] = useState(0);
   const [bestWpm, setBestWpm] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
 
   useEffect(() => {
     setXp(getTotalXP());
+    setGameXp(getGameXP());
     setStreak(getStreak().count);
     setBestWpm(getHighScore());
     setCompletedCount(getCompleted().length);
@@ -121,6 +123,17 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <div className="h-1.5 bg-border/40 rounded-full overflow-hidden">
               <div className="h-full bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full transition-all" style={{ width: `${xpProgress}%` }} />
             </div>
+            {gameXp > 0 && (
+              <div className="flex items-center justify-between text-[10px] pt-0.5" title={`${gameXp} XP earned from mini-games`}>
+                <div className="flex items-center gap-1 text-accent font-bold">
+                  <Gamepad2 className="w-3 h-3" />
+                  {gameXp.toLocaleString()} Game XP
+                </div>
+                <span className="text-muted-foreground/40">
+                  {xp > 0 ? Math.round((gameXp / xp) * 100) : 0}%
+                </span>
+              </div>
+            )}
             <div className="grid grid-cols-3 gap-1.5 text-center text-xs mt-1">
               {streak > 0 && (
                 <div className="rounded-lg bg-orange-500/10 border border-orange-500/20 py-1">

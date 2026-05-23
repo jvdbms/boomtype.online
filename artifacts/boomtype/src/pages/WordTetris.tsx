@@ -5,7 +5,7 @@ import { ArrowLeft, Trophy, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WORD_LIST, LESSON_WORDS } from "@/lib/words";
 import { useGameSounds } from "@/hooks/useGameSounds";
-import { addXP, awardGameBadge, calculateGameXP } from "@/lib/storage";
+import { addGameXP, awardGameBadge, calculateGameXP } from "@/lib/storage";
 
 const HS_KEY = "boomtype_wordtetris_hs";
 const GRID_COLS = 8;
@@ -82,7 +82,7 @@ export default function WordTetris() {
       localStorage.setItem(HS_KEY, fs.toString());
       setHighScore(fs);
     }
-    addXP(calculateGameXP("word-tetris", fs));
+    addGameXP(calculateGameXP("word-tetris", fs));
     if (linesRef.current >= 20) awardGameBadge("tetris-master");
   }, [playGameOver]);
 

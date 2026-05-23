@@ -16,6 +16,7 @@ import {
   getTestHistory, getMistakeHeatmap, getBestTimeOfDay,
   getWeeklyImprovement, getLeaderboardSubmitCount,
   clearMistakeHeatmap, getGameBadges, GAME_BADGE_DEFS,
+  getGameXP, getTypingXP, getTotalXP,
 } from "@/lib/storage";
 
 // ─── Types ────────────────────────────────────────────────────
@@ -119,6 +120,12 @@ export default function Profile() {
   const isPremium     = lbCount >= 10;
   const gameBadgeIds  = getGameBadges();
   const gameBadges    = gameBadgeIds.map(id => GAME_BADGE_DEFS[id]).filter(Boolean);
+  const localTotalXP  = getTotalXP();
+  const localGameXP   = getGameXP();
+  const localTypingXP = getTypingXP();
+  const xpSplitTotal  = localTypingXP + localGameXP;
+  const typingPct     = xpSplitTotal > 0 ? Math.round((localTypingXP / xpSplitTotal) * 100) : 0;
+  const gamePct       = xpSplitTotal > 0 ? 100 - typingPct : 0;
 
   const chartData = useMemo(() => (
     [...history].reverse().map((item, i) => ({
@@ -244,6 +251,47 @@ export default function Profile() {
             <StatCard label="Avg Accuracy"  value={`${Math.round(profile.avgAccuracy)}%`}  sub="All Tests"      icon={Target}   color="text-green-400"  />
             <StatCard label="Total Tests"   value={profile.totalTests}                     sub="Completed"      icon={Trophy}   color="text-yellow-400" />
           </div>
+
+          {/* ── XP Breakdown (Typing vs Game) ── */}
+          {xpSplitTotal > 0 && (
+            <div className="rounded-2xl bg-card border border-border/60 p-5 mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Star className="w-4 h-4 text-yellow-400" />
+                <h2 className="font-bold text-sm">XP Breakdown</h2>
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {localTotalXP.toLocaleString()} XP total
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="rounded-xl bg-primary/10 border border-primary/20 p-3">
+                  <div className="flex items-center gap-1.5 text-xs text-primary/80 mb-1">
+                    <Keyboard className="w-3.5 h-3.5" />Typing XP
+                  </div>
+                  <div className="text-2xl font-black text-primary">{localTypingXP.toLocaleString()}</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">{typingPct}% of earned XP</div>
+                </div>
+                <div className="rounded-xl bg-accent/10 border border-accent/20 p-3">
+                  <div className="flex items-center gap-1.5 text-xs text-accent/80 mb-1">
+                    <Zap className="w-3.5 h-3.5" />Game XP
+                  </div>
+                  <div className="text-2xl font-black text-accent">{localGameXP.toLocaleString()}</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">{gamePct}% of earned XP</div>
+                </div>
+              </div>
+              <div className="h-2 bg-border/30 rounded-full overflow-hidden flex">
+                <div
+                  className="h-full bg-primary transition-all"
+                  style={{ width: `${typingPct}%` }}
+                  title={`Typing: ${localTypingXP} XP`}
+                />
+                <div
+                  className="h-full bg-accent transition-all"
+                  style={{ width: `${gamePct}%` }}
+                  title={`Games: ${localGameXP} XP`}
+                />
+              </div>
+            </div>
+          )}
 
           {/* ── Mini-Game Badges ── */}
           {gameBadges.length > 0 && (

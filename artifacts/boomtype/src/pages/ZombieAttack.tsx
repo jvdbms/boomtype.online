@@ -5,7 +5,7 @@ import { ArrowLeft, RefreshCw, Sword, Shield, Trophy, Check } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { WORD_LIST } from "@/lib/words";
 import { useGameSounds } from "@/hooks/useGameSounds";
-import { getNickname, setNickname, addXP, awardGameBadge, calculateGameXP } from "@/lib/storage";
+import { getNickname, setNickname, addGameXP, awardGameBadge, calculateGameXP } from "@/lib/storage";
 import { useSubmitGameScore } from "@workspace/api-client-react";
 
 const HIGH_SCORE_KEY = "boomtype_zombie_hs";
@@ -130,7 +130,7 @@ export default function ZombieAttack() {
             setHighScore(fs);
             setNewHighScore(true);
           }
-          addXP(calculateGameXP("zombie-attack", fs));
+          addGameXP(calculateGameXP("zombie-attack", fs));
           if (fs >= 50) awardGameBadge("zombie-slayer");
           const storedNick = getNickname();
           if (storedNick) {
