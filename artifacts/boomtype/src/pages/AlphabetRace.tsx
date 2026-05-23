@@ -157,7 +157,13 @@ export default function AlphabetRace() {
                 {bestTimes[mode.id] && !isNewBest && (
                   <p className="text-muted-foreground text-sm mb-1">Best: <span className="text-yellow-400 font-bold">{bestTimes[mode.id].toFixed(2)}s</span></p>
                 )}
-                <p className="text-muted-foreground text-sm">Mistakes: {mistakes}</p>
+                <p className="text-muted-foreground text-sm mb-2">Mistakes: {mistakes}</p>
+                <p className="text-yellow-400 font-bold mb-1 text-sm flex items-center justify-center gap-1">
+                  ⚡ +{calculateGameXP("alphabet-race", 1)} XP earned
+                </p>
+                {mode.id === "az" && lastTime < 8 && (
+                  <p className="text-yellow-400 font-bold text-sm">🔤 Alphabet Ace badge unlocked!</p>
+                )}
               </motion.div>
             )}
 

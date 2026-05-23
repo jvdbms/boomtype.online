@@ -267,6 +267,14 @@ export default function SpeedBurst() {
                 <div className="text-5xl mb-3">🎉</div>
                 <h2 className="text-2xl font-black mb-1">Time's Up!</h2>
                 <p className="text-4xl font-black text-purple-400 mb-1">{finalScore} pts</p>
+                {finalScore > 0 && (
+                  <p className="text-yellow-400 font-bold mb-1 text-sm flex items-center justify-center gap-1">
+                    ⚡ +{calculateGameXP("speed-burst", finalScore)} XP earned
+                  </p>
+                )}
+                {finalScore >= 50 && (
+                  <p className="text-purple-400 font-bold mb-1 text-sm">⚡ Speed Freak badge unlocked!</p>
+                )}
                 {newHighScore && finalScore > 0 && (
                   <p className="text-yellow-400 font-bold mb-2 text-sm">🏆 New High Score!</p>
                 )}

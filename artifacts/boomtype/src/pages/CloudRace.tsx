@@ -236,7 +236,20 @@ export default function CloudRace() {
                   <div className="text-xs text-muted-foreground">CPU distance</div>
                 </div>
               </div>
-              <p className="text-muted-foreground text-sm mb-5">{wordsTyped} words typed in {DURATION - timeLeft}s</p>
+              <p className="text-muted-foreground text-sm mb-2">{wordsTyped} words typed in {DURATION - timeLeft}s</p>
+              {(() => {
+                const xp = result === "win"
+                  ? calculateGameXP("cloud-race", wordsTyped)
+                  : calculateGameXP("cloud-race", Math.floor(wordsTyped / 2));
+                return xp > 0 ? (
+                  <p className="text-yellow-400 font-bold mb-1 text-sm flex items-center justify-center gap-1">
+                    ⚡ +{xp} XP earned
+                  </p>
+                ) : null;
+              })()}
+              {result === "win" && (
+                <p className="text-sky-400 font-bold mb-4 text-sm">☁️ Cloud Racer badge unlocked!</p>
+              )}
               <div className="flex gap-3">
                 <Button onClick={startRace} className="flex-1 bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold gap-1.5">
                   <RefreshCw className="w-4 h-4" />Race Again

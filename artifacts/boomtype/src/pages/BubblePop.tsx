@@ -215,7 +215,15 @@ export default function BubblePop() {
               <h2 className="text-2xl font-black mb-1">Time's Up!</h2>
               {score >= highScore && score > 0 && <p className="text-yellow-400 font-bold text-sm mb-3">🏆 New High Score!</p>}
               <div className="text-5xl font-black text-primary mb-1">{score}</div>
-              <div className="text-muted-foreground text-sm mb-6">points</div>
+              <div className="text-muted-foreground text-sm mb-3">points</div>
+              {score > 0 && (
+                <p className="text-yellow-400 font-bold mb-1 text-sm flex items-center justify-center gap-1">
+                  ⚡ +{calculateGameXP("bubble-pop", score)} XP earned
+                </p>
+              )}
+              {score >= 100 && (
+                <p className="text-cyan-400 font-bold mb-4 text-sm">🫧 Bubble Master badge unlocked!</p>
+              )}
               <div className="flex gap-3">
                 <Button onClick={startGame} className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold gap-1.5">
                   <RefreshCw className="w-4 h-4" />Play Again

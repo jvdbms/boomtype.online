@@ -187,6 +187,14 @@ export default function PipeRun() {
               <h2 className="text-2xl font-black mb-2">Pipe Burst!</h2>
               <div className="text-5xl font-black text-primary mb-1">{score}</div>
               <div className="text-muted-foreground text-sm mb-2">words cleared</div>
+              {score > 0 && (
+                <p className="text-yellow-400 font-bold mb-1 text-sm flex items-center justify-center gap-1">
+                  ⚡ +{calculateGameXP("pipe-run", score)} XP earned
+                </p>
+              )}
+              {score >= 30 && (
+                <p className="text-green-400 font-bold mb-2 text-sm">🔧 Pipe Cleaner badge unlocked!</p>
+              )}
               {score >= highScore && score > 0 && <p className="text-yellow-400 font-bold text-sm mb-4">🏆 New High Score!</p>}
               <div className="flex gap-3">
                 <Button onClick={startGame} className="flex-1 bg-gradient-to-r from-green-500 to-teal-500 text-white font-bold gap-1.5">
