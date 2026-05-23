@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { useAudioPlayer } from "expo-audio";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
@@ -24,6 +25,7 @@ import Animated, {
   withDelay,
   withTiming,
 } from "react-native-reanimated";
+import { Confetti } from "@/components/Confetti";
 import { useColors } from "@/hooks/useColors";
 import { useUser } from "@/context/UserContext";
 import {
@@ -52,11 +54,13 @@ export default function ResultsScreen() {
   const duration = parseInt(params.duration ?? "30", 10);
   const correctWords = parseInt(params.correct ?? "0", 10);
 
-  const { nickname, totalXP, addXP, updateStreak, setHighScore } = useUser();
+  const { nickname, totalXP, highScore, addXP, updateStreak, setHighScore } = useUser();
   const [newStreak, setNewStreak] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
   const ranOnce = useRef(false);
+  const previousBest = useRef(highScore).current;
 
   const xpEarned = calculateXP(wpm, accuracy, duration);
   const level = getLevel(wpm);
@@ -117,13 +121,29 @@ export default function ResultsScreen() {
 
   const { mutate: submitScore, isPending } = useSubmitScore();
 
+  const successPlayer = useAudioPlayer(require("@/assets/sounds/success.wav"));
+
   const topPad = Platform.OS === "web" ? 67 : insets.top;
+
+  const isNewPersonalBest = wpm > 0 && wpm > previousBest;
+  const isPerfectAccuracy = accuracy >= 98;
+  const shouldCelebrate = isNewPersonalBest || leveledUp || isPerfectAccuracy;
 
   useEffect(() => {
     if (ranOnce.current) return;
     ranOnce.current = true;
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    if (shouldCelebrate) {
+      setShowConfetti(true);
+      try {
+        successPlayer.seekTo(0);
+        successPlayer.play();
+      } catch {
+        // Audio playback is best-effort; ignore failures (e.g. silent mode).
+      }
+    }
 
     (async () => {
       const streak = await updateStreak();
@@ -331,6 +351,7 @@ export default function ResultsScreen() {
           </Pressable>
         </Animated.View>
       </ScrollView>
+      {showConfetti && <Confetti />}
     </View>
   );
 }
