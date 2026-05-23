@@ -1,0 +1,363 @@
+import { Feather } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
+import { router, useLocalSearchParams } from "expo-router";
+import { useSubmitScore } from "@workspace/api-client-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useColors } from "@/hooks/useColors";
+import { useUser } from "@/context/UserContext";
+import { calculateXP, getLevel, getLevelColor } from "@/constants/words";
+
+export default function ResultsScreen() {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{
+    wpm: string;
+    accuracy: string;
+    mistakes: string;
+    duration: string;
+    correct: string;
+    total: string;
+  }>();
+
+  const wpm = parseFloat(params.wpm ?? "0");
+  const accuracy = parseFloat(params.accuracy ?? "0");
+  const mistakes = parseInt(params.mistakes ?? "0", 10);
+  const duration = parseInt(params.duration ?? "30", 10);
+  const correctWords = parseInt(params.correct ?? "0", 10);
+
+  const { nickname, addXP, updateStreak, setHighScore } = useUser();
+  const [newStreak, setNewStreak] = useState<number | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState(false);
+  const ranOnce = useRef(false);
+
+  const xpEarned = calculateXP(wpm, accuracy, duration);
+  const level = getLevel(wpm);
+  const levelColor = getLevelColor(wpm);
+
+  const { mutate: submitScore, isPending } = useSubmitScore();
+
+  const topPad = Platform.OS === "web" ? 67 : insets.top;
+
+  useEffect(() => {
+    if (ranOnce.current) return;
+    ranOnce.current = true;
+
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    (async () => {
+      const streak = await updateStreak();
+      setNewStreak(streak);
+      await setHighScore(wpm);
+      await addXP(xpEarned);
+
+      if (nickname) {
+        submitScore(
+          { data: { nickname, wpm, accuracy, duration, mistakes } },
+          {
+            onSuccess: () => setSubmitted(true),
+            onError: () => setSubmitError(true),
+          }
+        );
+      }
+    })();
+  }, []);
+
+  const handleRetry = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.replace({ pathname: "/test", params: { duration } });
+  };
+
+  const handleHome = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.replace("/");
+  };
+
+  return (
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
+      <ScrollView
+        contentContainerStyle={{ paddingTop: topPad + 20, paddingBottom: 40 + insets.bottom }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Top result hero */}
+        <View style={styles.heroSection}>
+          <LinearGradient
+            colors={[`${levelColor}30`, `${colors.background}00`]}
+            style={styles.heroGradient}
+          />
+          <Text style={[styles.heroLabel, { color: levelColor }]}>
+            {level}
+          </Text>
+          <Text style={[styles.wpmHero, { color: colors.foreground }]}>
+            {Math.round(wpm)}
+          </Text>
+          <Text style={[styles.wpmUnit, { color: colors.mutedForeground }]}>words per minute</Text>
+        </View>
+
+        {/* Stats grid */}
+        <View style={styles.statsGrid}>
+          {[
+            { icon: "check-circle", label: "Accuracy", value: `${Math.round(accuracy)}%`, color: colors.success },
+            { icon: "x-circle", label: "Mistakes", value: mistakes, color: mistakes > 0 ? colors.destructive : colors.mutedForeground },
+            { icon: "list", label: "Words typed", value: correctWords, color: colors.primary },
+            { icon: "clock", label: "Duration", value: `${duration}s`, color: colors.accent },
+          ].map((stat) => (
+            <View
+              key={stat.label}
+              style={[styles.statBox, { backgroundColor: colors.card, borderColor: colors.border }]}
+            >
+              <Feather name={stat.icon as any} size={18} color={stat.color} />
+              <Text style={[styles.statValue, { color: colors.foreground }]}>{stat.value}</Text>
+              <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>{stat.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* XP earned */}
+        <View style={[styles.xpCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={[styles.xpIcon, { backgroundColor: colors.primaryLight }]}>
+            <Feather name="star" size={20} color={colors.primary} />
+          </View>
+          <View style={styles.xpText}>
+            <Text style={[styles.xpAmount, { color: colors.primary }]}>+{xpEarned} XP</Text>
+            <Text style={[styles.xpLabel, { color: colors.mutedForeground }]}>earned this test</Text>
+          </View>
+          {newStreak !== null && newStreak > 0 && (
+            <View style={[styles.streakBadge, { backgroundColor: "#f59e0b22", borderColor: "#f59e0b44" }]}>
+              <Feather name="zap" size={14} color="#f59e0b" />
+              <Text style={[styles.streakText, { color: "#f59e0b" }]}>{newStreak}d</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Submit status */}
+        {nickname ? (
+          <View style={[styles.submitStatus, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            {isPending ? (
+              <>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={[styles.submitText, { color: colors.mutedForeground }]}>
+                  Submitting to leaderboard...
+                </Text>
+              </>
+            ) : submitted ? (
+              <>
+                <Feather name="check-circle" size={16} color={colors.success} />
+                <Text style={[styles.submitText, { color: colors.success }]}>
+                  Score submitted to leaderboard
+                </Text>
+              </>
+            ) : submitError ? (
+              <>
+                <Feather name="alert-circle" size={16} color={colors.destructive} />
+                <Text style={[styles.submitText, { color: colors.destructive }]}>
+                  Couldn't submit score
+                </Text>
+              </>
+            ) : null}
+          </View>
+        ) : (
+          <View style={[styles.submitStatus, { backgroundColor: colors.accentLight, borderColor: colors.accent }]}>
+            <Feather name="award" size={16} color={colors.accent} />
+            <Text style={[styles.submitText, { color: colors.accent }]}>
+              Set a nickname on the Home tab to join the leaderboard
+            </Text>
+          </View>
+        )}
+
+        {/* Actions */}
+        <View style={styles.actions}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.retryBtn,
+              { opacity: pressed ? 0.85 : 1, overflow: "hidden", borderRadius: 14 },
+            ]}
+            onPress={handleRetry}
+            testID="retry-btn"
+          >
+            <LinearGradient
+              colors={["#3b7af7", "#8853e0"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.retryGradient}
+            >
+              <Feather name="refresh-cw" size={18} color="#fff" />
+              <Text style={styles.retryText}>Try again</Text>
+            </LinearGradient>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [
+              styles.homeBtn,
+              { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
+            ]}
+            onPress={handleHome}
+          >
+            <Feather name="home" size={18} color={colors.foreground} />
+            <Text style={[styles.homeBtnText, { color: colors.foreground }]}>Home</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+  heroSection: {
+    alignItems: "center",
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    overflow: "hidden",
+  },
+  heroGradient: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: -1,
+  },
+  heroLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
+    marginBottom: 8,
+  },
+  wpmHero: {
+    fontSize: 80,
+    fontWeight: "900",
+    letterSpacing: -4,
+    lineHeight: 84,
+  },
+  wpmUnit: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginTop: 4,
+  },
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    paddingHorizontal: 16,
+    gap: 10,
+    marginBottom: 16,
+  },
+  statBox: {
+    width: "47%",
+    flexGrow: 1,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 16,
+    alignItems: "center",
+    gap: 6,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: "500",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  xpCard: {
+    marginHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 12,
+  },
+  xpIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  xpText: {
+    flex: 1,
+  },
+  xpAmount: {
+    fontSize: 20,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+  },
+  xpLabel: {
+    fontSize: 12,
+  },
+  streakBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  streakText: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  submitStatus: {
+    marginHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 20,
+  },
+  submitText: {
+    fontSize: 13,
+    flex: 1,
+    fontWeight: "500",
+  },
+  actions: {
+    paddingHorizontal: 16,
+    gap: 10,
+  },
+  retryBtn: {
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+  retryGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 18,
+    gap: 10,
+  },
+  retryText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  homeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 8,
+  },
+  homeBtnText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+});
