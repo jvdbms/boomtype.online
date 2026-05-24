@@ -13,14 +13,15 @@ export interface RowLesson {
   xpPerRound: number;
   letterRounds: string[];
   wordRounds: string[][];
+  paragraphRounds: string[];
 }
 
 export const ROUNDS_PER_PHASE = 10;
 export const PHASES_PER_LESSON = 3;
 export const ROUNDS_PER_LESSON = ROUNDS_PER_PHASE * PHASES_PER_LESSON;
-// Phases currently available to the user. Paragraph comes in a follow-up.
+// Phases currently available to the user. All three are now live.
 // Unlock math is based ONLY on enabled phases so the gating stays achievable.
-export const ENABLED_PHASES: PhaseId[] = ["letter", "word"];
+export const ENABLED_PHASES: PhaseId[] = ["letter", "word", "paragraph"];
 const ENABLED_ROUNDS = ENABLED_PHASES.length * ROUNDS_PER_PHASE;
 export const UNLOCK_THRESHOLD = Math.ceil(ENABLED_ROUNDS * 0.8);
 
@@ -60,6 +61,18 @@ export const ROW_LESSONS: RowLesson[] = [
       ["flash", "classy", "slash", "glass"],
       ["as", "sad", "dash", "flash", "classy", "glass"],
     ],
+    paragraphRounds: [
+      "The home row is where your fingers rest.",
+      "Place your hands on a s d f and j k l for the home keys.",
+      "Strong home row skills make typing fast and easy.",
+      "Practice every day to keep your fingers moving smoothly.",
+      "Your left hand stays on a s d f while you type each line.",
+      "Your right hand stays on j k l and the semicolon key.",
+      "Good posture helps you type with steady hands and a calm mind.",
+      "Keep your wrists straight and your fingers curved gently as you type.",
+      "Always reach back to the home row after every key you press.",
+      "A strong home row builds the steady base for all of your future typing.",
+    ],
   },
   {
     id: 2,
@@ -95,6 +108,18 @@ export const ROW_LESSONS: RowLesson[] = [
       ["type", "your", "power", "tower"],
       ["power", "tower", "poetry", "report"],
       ["we", "you", "type", "power", "poetry"],
+    ],
+    paragraphRounds: [
+      "Reach up to the upper row from your home position.",
+      "The upper row holds q w e r t y u i o p in order.",
+      "Type quickly and your fingers will return home with ease.",
+      "Power and poetry both live on this upper row of keys.",
+      "Write the word type to practice the top keys today.",
+      "A quiet writer tells a story with every single letter.",
+      "Try to type with rhythm and your speed will rise quickly.",
+      "Your eyes stay on the screen, never on the keys below.",
+      "Quietly type your way through this upper row drill with patience.",
+      "Practice the top row daily and your typing power will quickly grow.",
     ],
   },
   {
@@ -132,6 +157,18 @@ export const ROW_LESSONS: RowLesson[] = [
       ["venom", "cabin", "vacant", "venoms"],
       ["can", "van", "name", "venom", "vacant"],
     ],
+    paragraphRounds: [
+      "Curl your fingers down to reach the lower row keys.",
+      "Type names of common objects to drill the lower row.",
+      "A cabin in the woods is calm and quiet at night.",
+      "Many can climb the mountain with a brave heart.",
+      "Bring a brown bag and a fine pen to class today.",
+      "Calm minds and steady hands make for better typing.",
+      "Type each comma, period, and slash with extra care.",
+      "Move slowly until your accuracy is high, then build up speed.",
+      "Even the bottom row needs daily practice to stay sharp.",
+      "Number names like one, two, and three use these lower keys often.",
+    ],
   },
   {
     id: 4,
@@ -167,6 +204,18 @@ export const ROW_LESSONS: RowLesson[] = [
       ["1234", "567", "89", "0"],
       ["9", "87", "654", "3210"],
       ["11", "22", "333", "4444", "55555", "67890"],
+    ],
+    paragraphRounds: [
+      "Type 1 2 3 to start a simple count.",
+      "The year 2025 is now and 2026 is next.",
+      "There are 7 days in 1 week and 12 months in 1 year.",
+      "Add 10 plus 20 to get 30 and 40 plus 50 to get 90.",
+      "My phone code is 4 8 1 5 1 6 2 3 4 2.",
+      "In 1969 humans first walked on the moon.",
+      "She typed 65 words per minute on her 3rd try.",
+      "There are 24 hours in 1 day and 60 minutes in 1 hour.",
+      "The pin is 0 0 0 0 and the backup code is 1 2 3 4.",
+      "Type 100 200 300 400 500 to drill the top row of numbers.",
     ],
   },
 ];

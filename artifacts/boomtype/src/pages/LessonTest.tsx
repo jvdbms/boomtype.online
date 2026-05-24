@@ -63,6 +63,10 @@ export default function LessonTest() {
   const [wordIdx, setWordIdx] = useState(0);
   const [wordInput, setWordInput] = useState("");
 
+  // Paragraph-phase state
+  const [paraIdx, setParaIdx] = useState(0);
+  const [paraStatuses, setParaStatuses] = useState<("correct" | "wrong" | undefined)[]>([]);
+
   const liveRef = useRef<HTMLDivElement>(null);
 
   // Load progress whenever lesson or phase changes
@@ -93,18 +97,22 @@ export default function LessonTest() {
     () => lesson?.wordRounds[roundIndex] ?? [],
     [lesson, roundIndex],
   );
+  const paraTarget = lesson?.paragraphRounds[roundIndex] ?? "";
 
   // Total chars expected this round (used for WPM denominator on word phase)
   const totalTargetChars = useMemo(() => {
     if (phase === "letter") return letterTarget.length;
-    // include spaces between words
+    if (phase === "paragraph") return paraTarget.length;
+    // word: include spaces between words
     return wordTarget.reduce((sum, w) => sum + w.length, 0) + Math.max(0, wordTarget.length - 1);
-  }, [phase, letterTarget, wordTarget]);
+  }, [phase, letterTarget, wordTarget, paraTarget]);
 
   const resetRound = useCallback(() => {
     setCharIndex(0);
     setWordIdx(0);
     setWordInput("");
+    setParaIdx(0);
+    setParaStatuses([]);
     setErrors(0);
     setKeystrokes(0);
     setCorrectChars(0);
@@ -283,10 +291,80 @@ export default function LessonTest() {
         }
         return;
       }
+
+      // ── PARAGRAPH PHASE ────────────────────────────────────
+      if (phase === "paragraph") {
+        if (paraTarget.length === 0) return;
+
+        // Backspace: undo last typed position and its metric impact.
+        if (k === "Backspace") {
+          e.preventDefault();
+          if (paraIdx === 0) return;
+          const prev = paraIdx - 1;
+          const prevStatus = paraStatuses[prev];
+          if (prevStatus === "correct") {
+            setCorrectChars((c) => Math.max(0, c - 1));
+          } else if (prevStatus === "wrong") {
+            setErrors((er) => Math.max(0, er - 1));
+          }
+          setKeystrokes((k2) => Math.max(0, k2 - 1));
+          setParaIdx(prev);
+          setParaStatuses((arr) => {
+            const next = arr.slice();
+            next[prev] = undefined;
+            return next;
+          });
+          return;
+        }
+
+        // Accept printable chars including space; ignore Enter and other non-chars.
+        if (k.length !== 1) return;
+        if (paraIdx >= paraTarget.length) return;
+        e.preventDefault();
+
+        const startTs = startedAt ?? Date.now();
+        if (startedAt === null) setStartedAt(startTs);
+
+        const nextKeystrokes = keystrokes + 1;
+        setKeystrokes(nextKeystrokes);
+
+        const expected = paraTarget[paraIdx];
+        const isCorrect = k === expected;
+        const nextIdx = paraIdx + 1;
+        let nextCorrect = correctChars;
+        let nextErrors = errors;
+
+        if (isCorrect) {
+          nextCorrect = correctChars + 1;
+          setCorrectChars(nextCorrect);
+          setFlash("correct");
+          setTimeout(() => setFlash((f) => (f === "correct" ? null : f)), 80);
+        } else {
+          nextErrors = errors + 1;
+          setErrors(nextErrors);
+          setFlash("wrong");
+          setShake(true);
+          setTimeout(() => setShake(false), 200);
+          setTimeout(() => setFlash((f) => (f === "wrong" ? null : f)), 160);
+        }
+
+        setParaIdx(nextIdx);
+        setParaStatuses((arr) => {
+          const next = arr.slice();
+          next[paraIdx] = isCorrect ? "correct" : "wrong";
+          return next;
+        });
+
+        if (nextIdx >= paraTarget.length) {
+          finishRound(nextCorrect, nextErrors, nextKeystrokes, Date.now(), startTs);
+        }
+        return;
+      }
     },
     [
       roundResult, phase, letterTarget, charIndex, startedAt, keystrokes, errors,
-      correctChars, wordTarget, wordIdx, wordInput, finishRound,
+      correctChars, wordTarget, wordIdx, wordInput, paraTarget, paraIdx, paraStatuses,
+      finishRound,
     ],
   );
 
@@ -317,7 +395,9 @@ export default function LessonTest() {
   const highlightKey =
     phase === "letter"
       ? currentLetter?.toLowerCase()
-      : (currentWord[wordInput.length] ?? currentWord[currentWord.length - 1] ?? "")?.toLowerCase();
+      : phase === "word"
+      ? (currentWord[wordInput.length] ?? currentWord[currentWord.length - 1] ?? "")?.toLowerCase()
+      : (paraTarget[paraIdx] ?? "")?.toLowerCase();
 
   const phaseDone = progress[phase];
   const overallPct = (phaseDone / ROUNDS_PER_PHASE) * 100;
@@ -327,8 +407,11 @@ export default function LessonTest() {
   const progressLabel =
     phase === "letter"
       ? `${charIndex}/${letterTarget.length}`
-      : `${wordIdx}/${wordTarget.length}`;
-  const progressLabelTitle = phase === "letter" ? "Letters" : "Words";
+      : phase === "word"
+      ? `${wordIdx}/${wordTarget.length}`
+      : `${paraIdx}/${paraTarget.length}`;
+  const progressLabelTitle =
+    phase === "letter" ? "Letters" : phase === "word" ? "Words" : "Chars";
 
   return (
     <div className="min-h-screen py-6 px-4 relative">
@@ -484,13 +567,28 @@ export default function LessonTest() {
               }}
               totalTargetChars={totalTargetChars}
             />
-          ) : (
+          ) : phase === "word" ? (
             <WordPhaseContent
               words={wordTarget}
               wordIdx={wordIdx}
               wordInput={wordInput}
               currentWord={currentWord}
               flash={flash}
+              startedAt={startedAt}
+              roundResult={roundResult}
+              color={lesson.color}
+              isLastRound={isLastRound}
+              onRetry={resetRound}
+              onNext={() => {
+                if (isLastRound) return;
+                setRoundIndex((r) => Math.min(r + 1, ROUNDS_PER_PHASE - 1));
+              }}
+            />
+          ) : (
+            <ParagraphPhaseContent
+              target={paraTarget}
+              typedIdx={paraIdx}
+              statuses={paraStatuses}
               startedAt={startedAt}
               roundResult={roundResult}
               color={lesson.color}
@@ -526,7 +624,9 @@ export default function LessonTest() {
               <p className="text-sm text-muted-foreground mb-4">
                 {phase === "letter"
                   ? "All 10 letter rounds done. Try the Word phase next!"
-                  : "All 10 word rounds done. Paragraph phase coming soon."}
+                  : phase === "word"
+                  ? "All 10 word rounds done. Time for Paragraph practice!"
+                  : "All 10 paragraph rounds done. You've finished this lesson!"}
               </p>
               <div className="flex gap-2 justify-center flex-wrap">
                 <Button variant="outline" onClick={() => setRoundIndex(0)} className="gap-1.5">
@@ -539,6 +639,14 @@ export default function LessonTest() {
                     data-testid="goto-word-phase"
                   >
                     <ChevronRight className="w-4 h-4" /> Start Word Phase
+                  </Button>
+                ) : phase === "word" && ENABLED_PHASES.includes("paragraph") ? (
+                  <Button
+                    onClick={() => setPhase("paragraph")}
+                    className={`bg-gradient-to-r ${lesson.color} text-white gap-1.5`}
+                    data-testid="goto-paragraph-phase"
+                  >
+                    <ChevronRight className="w-4 h-4" /> Start Paragraph Phase
                   </Button>
                 ) : (
                   <Link href="/lessons">
@@ -805,5 +913,84 @@ function Stat({ label, value, color }: { label: string; value: string | number; 
       <div className={`text-xl font-black tabular-nums ${color}`}>{value}</div>
       <div className="text-[10px] text-muted-foreground">{label}</div>
     </div>
+  );
+}
+
+// ── Paragraph phase practice card content ──────────────────────
+function ParagraphPhaseContent({
+  target, typedIdx, statuses, startedAt, roundResult,
+  color, isLastRound, onRetry, onNext,
+}: {
+  target: string;
+  typedIdx: number;
+  statuses: ("correct" | "wrong" | undefined)[];
+  startedAt: number | null;
+  roundResult: RoundStats | null;
+  color: string;
+  isLastRound: boolean;
+  onRetry: () => void;
+  onNext: () => void;
+}) {
+  // Group chars into word chunks so wrapping breaks between words, not inside.
+  const chunks: { start: number; text: string }[] = [];
+  {
+    let buf = "";
+    let bufStart = 0;
+    for (let i = 0; i < target.length; i++) {
+      buf += target[i];
+      if (target[i] === " ") {
+        chunks.push({ start: bufStart, text: buf });
+        buf = "";
+        bufStart = i + 1;
+      }
+    }
+    if (buf) chunks.push({ start: bufStart, text: buf });
+  }
+
+  return (
+    <>
+      <div className="font-mono text-lg sm:text-xl leading-relaxed text-center select-none">
+        {chunks.map((chunk, ci) => (
+          <span key={ci} className="inline-block whitespace-pre">
+            {chunk.text.split("").map((ch, k) => {
+              const i = chunk.start + k;
+              const status = statuses[i];
+              const isCurrent = i === typedIdx;
+              let cls = "text-muted-foreground/45";
+              if (status === "correct") cls = "text-green-400";
+              else if (status === "wrong")
+                cls = "text-red-400 bg-red-500/10 rounded-sm";
+              return (
+                <span
+                  key={k}
+                  className={`${cls} ${isCurrent ? "border-b-2 border-primary text-foreground" : ""}`}
+                  data-testid={isCurrent ? "current-para-char" : undefined}
+                >
+                  {ch === " " && status === "wrong" ? "·" : ch}
+                </span>
+              );
+            })}
+          </span>
+        ))}
+      </div>
+
+      <div className="flex flex-col items-center justify-center mt-6 min-h-[80px] gap-2">
+        {roundResult ? (
+          <RoundComplete
+            stats={roundResult}
+            color={color}
+            isLastRound={isLastRound}
+            onRetry={onRetry}
+            onNext={onNext}
+          />
+        ) : (
+          <div className="text-xs text-muted-foreground text-center">
+            {startedAt === null
+              ? "Start typing the paragraph above to begin"
+              : "Keep going — Backspace fixes mistakes"}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
