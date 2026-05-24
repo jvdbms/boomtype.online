@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  RefreshCw, ArrowLeft, ChevronRight, Trophy,
-  CheckCircle2, Target, Lock, Sparkles,
+  ArrowLeft, Trophy,
+  CheckCircle2, Target, Lock, Sparkles, Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { addXP, saveLastResult } from "@/lib/storage";
@@ -19,6 +19,7 @@ import {
   latestUnlockedPhase,
   type PhaseId,
   type PhaseProgress,
+  type RowLesson,
 } from "@/lib/lessonContent";
 
 const PHASES: { id: PhaseId; label: string }[] = [
@@ -44,10 +45,21 @@ export default function LessonTest() {
   const params = useParams<{ id: string }>();
   const lessonId = parseInt(params.id || "1", 10);
   const lesson = LESSON_BY_ID[lessonId];
+  const [, navigate] = useLocation();
 
   const [phase, setPhase] = useState<PhaseId>("letter");
   const [progress, setProgress] = useState<PhaseProgress>({ letter: 0, word: 0, paragraph: 0 });
   const [roundIndex, setRoundIndex] = useState(0);
+
+  // ── Keyboard-only session transition state ────────────────────
+  // "phase"  → phase transition card (3..2..1 countdown, SPACE/ENTER skips)
+  // "lesson" → lesson complete celebration (SPACE/ENTER → next lesson)
+  const [transitionScreen, setTransitionScreen] = useState<"phase" | "lesson" | null>(null);
+  const [countdown, setCountdown] = useState<number>(0);
+  // Per-lesson session: collected for the lesson-complete avg WPM/accuracy.
+  const [lessonResults, setLessonResults] = useState<RoundStats[]>([]);
+  // Last keystroke timestamp — drives auto-hide on hint bar.
+  const [lastKeyAt, setLastKeyAt] = useState<number>(0);
 
   // Shared live state
   const [keystrokes, setKeystrokes] = useState(0);
@@ -94,6 +106,14 @@ export default function LessonTest() {
   useEffect(() => {
     if (lesson) document.title = `${lesson.title} | BoomType`;
   }, [lesson]);
+
+  // Reset per-lesson results & any in-flight transition when the user
+  // navigates to a different lesson.
+  useEffect(() => {
+    setLessonResults([]);
+    setTransitionScreen(null);
+    setCountdown(0);
+  }, [lessonId]);
 
   useEffect(() => {
     if (startedAt === null || roundResult) return;
@@ -159,6 +179,7 @@ export default function LessonTest() {
 
       const stats: RoundStats = { wpm, accuracy, errors: finalErrors, durationMs };
       setRoundResult(stats);
+      setLessonResults((arr) => [...arr, stats]);
 
       const updated = setRoundCompleted(lessonId, phase, roundIndex);
       setProgress(updated);
@@ -178,6 +199,7 @@ export default function LessonTest() {
       if (roundResult) return;
       const k = e.key;
       if (k === "Tab" || k === "Shift" || k === "CapsLock" || k === "Meta" || k === "Control" || k === "Alt") return;
+      setLastKeyAt(Date.now());
 
       // ── LETTER PHASE ────────────────────────────────────────
       if (phase === "letter") {
@@ -382,6 +404,82 @@ export default function LessonTest() {
     ],
   );
 
+  // What round is this round's number relative to the phase (1-indexed)?
+  const isLastRound = roundIndex >= ROUNDS_PER_PHASE - 1;
+
+  // goNext: the single advancement action invoked by SPACE / ENTER on
+  // any non-typing screen (round result, phase transition, lesson complete).
+  const goNext = useCallback(() => {
+    // Lesson complete celebration → advance to next lesson (or back to menu).
+    if (transitionScreen === "lesson") {
+      setTransitionScreen(null);
+      const nextId = lessonId + 1;
+      if (LESSON_BY_ID[nextId]) navigate(`/lessons/${nextId}`);
+      else navigate("/lessons");
+      return;
+    }
+    // Phase transition countdown → enter next phase round 1 immediately.
+    if (transitionScreen === "phase") {
+      const nextPhase: PhaseId = phase === "letter" ? "word" : "paragraph";
+      setTransitionScreen(null);
+      setCountdown(0);
+      setPhase(nextPhase);
+      setRoundIndex(0);
+      return;
+    }
+    // Round result is up.
+    if (!roundResult) return;
+    if (isLastRound) {
+      // End of phase: enter the appropriate transition screen.
+      if (phase === "paragraph") {
+        setTransitionScreen("lesson");
+      } else {
+        setTransitionScreen("phase");
+        setCountdown(3);
+      }
+      return;
+    }
+    // Ordinary next-round advance.
+    setRoundIndex((r) => Math.min(r + 1, ROUNDS_PER_PHASE - 1));
+  }, [transitionScreen, phase, lessonId, navigate, roundResult, isLastRound]);
+
+  // Global key handler for the keyboard-only transition flow.
+  // Active only when a result or transition screen is up — never steals
+  // keystrokes from the typing area.
+  useEffect(() => {
+    const active = !!roundResult || transitionScreen !== null;
+    if (!active) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === " " || e.key === "Spacebar" || e.key === "Enter") {
+        e.preventDefault();
+        goNext();
+        return;
+      }
+      if ((e.key === "r" || e.key === "R") && roundResult && !transitionScreen) {
+        e.preventDefault();
+        resetRound();
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        navigate("/lessons");
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [roundResult, transitionScreen, goNext, resetRound, navigate]);
+
+  // 3..2..1 phase countdown. Each tick decrements; at 0 → advance.
+  useEffect(() => {
+    if (transitionScreen !== "phase") return;
+    if (countdown <= 0) {
+      goNext();
+      return;
+    }
+    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [transitionScreen, countdown, goNext]);
+
   const liveStats = useMemo(() => {
     const durationMs = startedAt ? Math.max(now - startedAt, 1) : 0;
     const minutes = durationMs / 60000;
@@ -415,8 +513,7 @@ export default function LessonTest() {
 
   const phaseDone = progress[phase];
   const overallPct = (phaseDone / ROUNDS_PER_PHASE) * 100;
-  const isLastRound = roundIndex >= ROUNDS_PER_PHASE - 1;
-  const phaseComplete = !!roundResult && isLastRound;
+  // `isLastRound` is defined earlier (drives goNext as well).
 
   const progressLabel =
     phase === "letter"
@@ -630,56 +727,42 @@ export default function LessonTest() {
           </p>
         </div>
 
-        {/* Phase-complete banner */}
-        <AnimatePresence>
-          {phaseComplete && (
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="rounded-2xl bg-gradient-to-br from-green-500/15 to-emerald-500/10 border border-green-500/30 p-5 text-center mb-4"
-            >
-              <Trophy className="w-8 h-8 text-green-400 mx-auto mb-2" />
-              <div className="text-lg font-black mb-1">{PHASE_LABEL[phase]} Phase Complete!</div>
-              <p className="text-sm text-muted-foreground mb-4">
-                {phase === "letter"
-                  ? "All 10 letter rounds done. Try the Word phase next!"
-                  : phase === "word"
-                  ? "All 10 word rounds done. Time for Paragraph practice!"
-                  : "All 10 paragraph rounds done. You've finished this lesson!"}
-              </p>
-              <div className="flex gap-2 justify-center flex-wrap">
-                <Button variant="outline" onClick={() => setRoundIndex(0)} className="gap-1.5">
-                  <RefreshCw className="w-4 h-4" /> Replay Phase
-                </Button>
-                {phase === "letter" && ENABLED_PHASES.includes("word") ? (
-                  <Button
-                    onClick={() => setPhase("word")}
-                    className={`bg-gradient-to-r ${lesson.color} text-white gap-1.5`}
-                    data-testid="goto-word-phase"
-                  >
-                    <ChevronRight className="w-4 h-4" /> Start Word Phase
-                  </Button>
-                ) : phase === "word" && ENABLED_PHASES.includes("paragraph") ? (
-                  <Button
-                    onClick={() => setPhase("paragraph")}
-                    className={`bg-gradient-to-r ${lesson.color} text-white gap-1.5`}
-                    data-testid="goto-paragraph-phase"
-                  >
-                    <ChevronRight className="w-4 h-4" /> Start Paragraph Phase
-                  </Button>
-                ) : (
-                  <Link href="/lessons">
-                    <Button className={`bg-gradient-to-r ${lesson.color} text-white gap-1.5`}>
-                      <ChevronRight className="w-4 h-4" /> Back to Lessons
-                    </Button>
-                  </Link>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
+
+      {/* ── Phase transition overlay (between phases of same lesson) ── */}
+      <AnimatePresence>
+        {transitionScreen === "phase" && (
+          <PhaseTransitionOverlay
+            currentPhase={phase}
+            nextPhase={phase === "letter" ? "word" : "paragraph"}
+            color={lesson.color}
+            countdown={countdown}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── Lesson complete overlay (after Paragraph round 10) ────── */}
+      <AnimatePresence>
+        {transitionScreen === "lesson" && (
+          <LessonCompleteOverlay
+            lesson={lesson}
+            results={lessonResults}
+            nextLesson={LESSON_BY_ID[lessonId + 1]}
+            color={lesson.color}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── Fixed keyboard shortcut hint bar at bottom ────────────── */}
+      <KeyboardHintBar
+        visible={
+          !!roundResult ||
+          transitionScreen !== null ||
+          startedAt === null ||
+          Date.now() - lastKeyAt > 2500
+        }
+        showRetry={!!roundResult && !transitionScreen}
+      />
     </div>
   );
 }
@@ -881,49 +964,49 @@ function WordPhaseContent({
 }
 
 function RoundComplete({
-  stats, color, isLastRound, onRetry, onNext,
+  stats, isLastRound,
 }: {
   stats: RoundStats;
-  color: string;
+  // Legacy props kept on the call sites; intentionally unused now that
+  // the keyboard-only flow handles next/retry at the page level.
+  color?: string;
   isLastRound: boolean;
-  onRetry: () => void;
-  onNext: () => void;
+  onRetry?: () => void;
+  onNext?: () => void;
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
+      initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.15 }}
       className="w-full text-center"
+      data-testid="round-complete"
     >
       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/15 border border-green-500/30 text-green-400 text-xs font-bold mb-3">
         <CheckCircle2 className="w-3.5 h-3.5" />
         Round Complete
       </div>
-      <div className="grid grid-cols-3 gap-2 mb-4 max-w-sm mx-auto">
+      <div className="grid grid-cols-3 gap-2 mb-3 max-w-sm mx-auto">
         <Stat label="WPM"      value={stats.wpm}              color="text-primary" />
         <Stat label="Accuracy" value={`${stats.accuracy}%`}    color={stats.accuracy >= 95 ? "text-green-400" : stats.accuracy >= 80 ? "text-yellow-400" : "text-red-400"} />
         <Stat label="Errors"   value={stats.errors}            color={stats.errors === 0 ? "text-green-400" : "text-red-400"} />
       </div>
-      <div className="flex gap-2 justify-center flex-wrap">
-        <Button
-          variant="outline"
-          onClick={onRetry}
-          data-testid="retry-round"
-          className="gap-1.5 border-border/60 hover:bg-white/5"
-        >
-          <RefreshCw className="w-4 h-4" /> Retry Round
-        </Button>
-        {!isLastRound && (
-          <Button
-            onClick={onNext}
-            data-testid="next-round"
-            className={`gap-1.5 bg-gradient-to-r ${color} text-white shadow-lg hover:opacity-90`}
-          >
-            <Sparkles className="w-4 h-4" /> Next Round
-          </Button>
+      <div className="text-xs sm:text-sm text-muted-foreground">
+        {isLastRound ? (
+          <>Press <Kbd>SPACE</Kbd> to continue</>
+        ) : (
+          <>Press <Kbd>SPACE</Kbd> for next round &nbsp;·&nbsp; <Kbd>R</Kbd> retry</>
         )}
       </div>
     </motion.div>
+  );
+}
+
+function Kbd({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="inline-block px-1.5 py-0.5 mx-0.5 rounded border border-border/60 bg-white/5 text-[10px] font-mono font-bold text-foreground">
+      {children}
+    </kbd>
   );
 }
 
@@ -1012,5 +1095,160 @@ function ParagraphPhaseContent({
         )}
       </div>
     </>
+  );
+}
+
+// ── Phase transition overlay ───────────────────────────────────
+// Shown between phases of the same lesson. Auto-advances after a
+// 3..2..1 countdown; SPACE/ENTER skips at any time.
+function PhaseTransitionOverlay({
+  currentPhase, nextPhase, color, countdown,
+}: {
+  currentPhase: PhaseId;
+  nextPhase: PhaseId;
+  color: string;
+  countdown: number;
+}) {
+  const order: PhaseId[] = ["letter", "word", "paragraph"];
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15 }}
+      className="fixed inset-0 z-40 flex items-center justify-center bg-background/80 backdrop-blur-sm px-4"
+      data-testid="phase-transition-overlay"
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 12 }}
+        animate={{ scale: 1, y: 0 }}
+        className="w-full max-w-md rounded-2xl bg-card border border-green-500/40 p-7 text-center shadow-2xl"
+      >
+        <Trophy className="w-10 h-10 text-green-400 mx-auto mb-3" />
+        <div className="text-xl font-black mb-1">
+          {PHASE_LABEL[currentPhase]} Phase Complete!
+        </div>
+        <p className="text-sm text-muted-foreground mb-5">
+          Moving to {PHASE_LABEL[nextPhase]} practice…
+        </p>
+
+        {/* Phase progress tracker */}
+        <div className="flex items-center justify-center gap-2 mb-5">
+          {order.map((p, i) => {
+            const isDone = order.indexOf(currentPhase) >= i;
+            const isNext = p === nextPhase;
+            return (
+              <div key={p} className="flex items-center gap-2">
+                <div
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-bold border flex items-center gap-1 ${
+                    isDone
+                      ? "bg-green-500/15 border-green-500/40 text-green-400"
+                      : isNext
+                      ? `bg-gradient-to-r ${color} text-white border-transparent`
+                      : "bg-card border-border/40 text-muted-foreground"
+                  }`}
+                >
+                  {isDone && <Check className="w-3 h-3" />}
+                  {PHASE_LABEL[p]}
+                </div>
+                {i < order.length - 1 && <span className="text-muted-foreground/60">→</span>}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="text-3xl font-black tabular-nums mb-2" data-testid="countdown">
+          {countdown > 0 ? `Starting in ${countdown}…` : "Starting…"}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Press <Kbd>SPACE</Kbd> to skip
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ── Lesson complete celebration overlay ────────────────────────
+function LessonCompleteOverlay({
+  lesson, results, nextLesson, color,
+}: {
+  lesson: RowLesson;
+  results: RoundStats[];
+  nextLesson: RowLesson | undefined;
+  color: string;
+}) {
+  const avgWpm = results.length
+    ? Math.round(results.reduce((s, r) => s + r.wpm, 0) / results.length)
+    : 0;
+  const avgAcc = results.length
+    ? Math.round(results.reduce((s, r) => s + r.accuracy, 0) / results.length)
+    : 0;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15 }}
+      className="fixed inset-0 z-40 flex items-center justify-center bg-background/85 backdrop-blur-sm px-4"
+      data-testid="lesson-complete-overlay"
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 12 }}
+        animate={{ scale: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 140, damping: 16 }}
+        className={`w-full max-w-md rounded-2xl bg-card border-2 p-7 text-center shadow-2xl border-transparent bg-gradient-to-br ${color} bg-clip-padding`}
+        style={{ backgroundImage: undefined }}
+      >
+        <div className="rounded-xl bg-card/95 p-6">
+          <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${color} mx-auto mb-3 flex items-center justify-center text-3xl shadow-lg`}>
+            {lesson.icon}
+          </div>
+          <div className="text-xl font-black mb-1">
+            Lesson {lesson.id} Complete!
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            {lesson.shortTitle} mastered
+            <Check className="inline w-4 h-4 text-green-400 ml-1 -mt-0.5" />
+          </p>
+
+          <div className="grid grid-cols-2 gap-2 mb-5 max-w-xs mx-auto">
+            <Stat label="Avg WPM"      value={avgWpm}            color="text-primary" />
+            <Stat label="Avg Accuracy" value={`${avgAcc}%`}      color={avgAcc >= 95 ? "text-green-400" : avgAcc >= 80 ? "text-yellow-400" : "text-red-400"} />
+          </div>
+
+          <div className="text-sm text-foreground mb-1.5">
+            {nextLesson
+              ? <>Press <Kbd>SPACE</Kbd> to start Lesson {nextLesson.id} — {nextLesson.shortTitle}</>
+              : <>Press <Kbd>SPACE</Kbd> to return to Lessons</>}
+          </div>
+          <div className="text-[11px] text-muted-foreground">
+            <Kbd>ESC</Kbd> for lesson menu
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ── Fixed keyboard shortcuts hint bar ──────────────────────────
+function KeyboardHintBar({ visible, showRetry }: { visible: boolean; showRetry: boolean }) {
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 8 }}
+          transition={{ duration: 0.18 }}
+          className="fixed bottom-3 left-1/2 -translate-x-1/2 z-30 px-3 py-1.5 rounded-full bg-card/90 backdrop-blur border border-border/60 shadow-lg text-[11px] text-muted-foreground flex items-center gap-3"
+          data-testid="kbd-hint-bar"
+        >
+          <span><Kbd>SPACE</Kbd>/<Kbd>ENTER</Kbd> next</span>
+          {showRetry && <span><Kbd>R</Kbd> retry</span>}
+          <span><Kbd>ESC</Kbd> menu</span>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

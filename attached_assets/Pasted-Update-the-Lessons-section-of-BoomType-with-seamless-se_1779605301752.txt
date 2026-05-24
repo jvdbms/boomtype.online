@@ -1,0 +1,111 @@
+Update the Lessons section of BoomType with seamless 
+session transitions. When a practice round or session 
+completes, the user should NEVER have to use the mouse.
+Everything must flow with keyboard only.
+
+═══════════════════════════════════════
+SPACE / ENTER KEY TRANSITION RULES
+═══════════════════════════════════════
+
+RULE 1 — AUTO-DETECT SESSION COMPLETE
+When user types the last character of any round:
+  → Immediately show a brief result overlay
+  → Display: WPM | Accuracy | Errors
+  → Show message: "Press SPACE or ENTER for next round"
+  → Do NOT show any button that requires mouse click
+
+RULE 2 — SPACE OR ENTER STARTS NEXT
+When user presses SPACE or ENTER on result screen:
+  → Instantly dismiss result overlay
+  → Load next round content immediately
+  → Move cursor to first character automatically
+  → User can start typing right away
+  → Zero delay — transition under 300ms
+
+RULE 3 — PHASE TRANSITION (Letter → Word → Paragraph)
+When Round 10 of any phase completes:
+  → Show phase complete screen for 1 second
+  → Display: "Phase 1 Complete! Moving to Word Practice..."
+  → Show animated progress: ✓ Letter  →  [Word]  →  Paragraph
+  → After 1 second auto-countdown: "Starting in 3... 2... 1..."
+  → OR user can press SPACE/ENTER to skip countdown
+  → Next phase loads instantly
+
+RULE 4 — LESSON TRANSITION
+When all 3 phases of a lesson complete:
+  → Show lesson complete celebration (brief animation)
+  → Display: "Lesson 1 Complete! Home Row Mastered ✓"
+  → Show stats summary: Total WPM average, Total accuracy
+  → Show: "Press SPACE to start Lesson 2 — Upper Row"
+  → Press SPACE → next lesson Phase 1 Round 1 starts
+
+RULE 5 — RETRY WITH KEYBOARD
+If user wants to retry current round:
+  → Press R key to retry same round instantly
+  → Press SPACE/ENTER to move forward
+  → Show hint at bottom: "[SPACE] Next  [R] Retry  [ESC] Menu"
+
+═══════════════════════════════════════
+RESULT OVERLAY DESIGN
+═══════════════════════════════════════
+
+Show a lightweight overlay (not a full page):
+  → Semi-transparent dark background
+  → Center card with:
+      ┌─────────────────────────────┐
+      │  Round 3 Complete! 🎉       │
+      │                             │
+      │  WPM      Accuracy  Errors  │
+      │   52        94%       2     │
+      │                             │
+      │  ░░░░░░░░░░░░░░░ 3/10      │
+      │                             │
+      │  Press SPACE for Round 4 →  │
+      └─────────────────────────────┘
+  → Overlay appears with fade-in animation (150ms)
+  → Disappears instantly on SPACE/ENTER press
+
+═══════════════════════════════════════
+FLOW MUST NEVER BREAK — STRICT RULES
+═══════════════════════════════════════
+
+✅ User hands must NEVER leave the keyboard
+✅ No mouse click required at any point during practice
+✅ Focus must always return to typing area automatically
+✅ After transition, first keypress starts typing immediately
+✅ SPACE on result screen = next round (not type a space)
+✅ ENTER on result screen = next round (not add a line)
+✅ ESC key = pause / go to lesson menu only
+
+IMPORTANT — Handle focus correctly:
+  → After each transition call: inputElement.focus()
+  → Prevent default browser behavior on Space/Enter 
+     during result screen: event.preventDefault()
+  → Make sure Space does not scroll the page
+
+═══════════════════════════════════════
+KEYBOARD SHORTCUTS HINT BAR
+═══════════════════════════════════════
+
+Show a small fixed hint bar at bottom of screen 
+during ALL practice sessions:
+
+  [SPACE / ENTER] Next Round   [R] Retry   [ESC] Menu
+
+Style: small, subtle, does not distract from typing
+Hide it after 3 seconds of typing, show again on pause
+
+═══════════════════════════════════════
+COUNTDOWN TIMER BETWEEN SESSIONS
+═══════════════════════════════════════
+
+Between rounds show optional 3 second countdown:
+  → "Next round in 3... 2... 1..."
+  → Press SPACE anytime to skip countdown instantly
+  → This gives user a natural breathing pause
+  → Make countdown skippable — never force the wait
+
+Do NOT change anything else in the app.
+Only update the session transition behavior
+in the Lessons section.
+Keep typing test and all other pages unchanged.
