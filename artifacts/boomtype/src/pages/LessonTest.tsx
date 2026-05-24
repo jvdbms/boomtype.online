@@ -14,6 +14,9 @@ import {
   ENABLED_PHASES,
   getPhaseProgress,
   setRoundCompleted,
+  isPhaseUnlocked,
+  phaseUnlockHint,
+  latestUnlockedPhase,
   type PhaseId,
   type PhaseProgress,
 } from "@/lib/lessonContent";
@@ -69,11 +72,22 @@ export default function LessonTest() {
 
   const liveRef = useRef<HTMLDivElement>(null);
 
-  // Load progress whenever lesson or phase changes
+  // Load progress whenever lesson or phase changes.
+  // If the current phase is locked (e.g. fresh visit or progress reset),
+  // bump down to the latest unlocked phase so the user can never be stuck
+  // staring at a locked tab.
   useEffect(() => {
     if (!lesson) return;
     const p = getPhaseProgress(lessonId);
     setProgress(p);
+    if (!isPhaseUnlocked(phase, p)) {
+      const target = latestUnlockedPhase(p);
+      if (target !== phase) {
+        setPhase(target);
+        setRoundIndex(Math.min(p[target], ROUNDS_PER_PHASE - 1));
+        return;
+      }
+    }
     setRoundIndex(Math.min(p[phase], ROUNDS_PER_PHASE - 1));
   }, [lessonId, lesson, phase]);
 
@@ -447,32 +461,38 @@ export default function LessonTest() {
         <div className="grid grid-cols-3 gap-2 mb-4">
           {PHASES.map((ph) => {
             const active = ph.id === phase;
-            const available = ENABLED_PHASES.includes(ph.id);
+            const enabled = ENABLED_PHASES.includes(ph.id);
+            const unlocked = isPhaseUnlocked(ph.id, progress);
+            const clickable = enabled && unlocked;
             const done = progress[ph.id];
+            const hint = phaseUnlockHint(ph.id, progress);
             return (
               <button
                 key={ph.id}
-                onClick={() => available && setPhase(ph.id)}
-                disabled={!available}
+                onClick={() => clickable && setPhase(ph.id)}
+                disabled={!clickable}
                 data-testid={`phase-tab-${ph.id}`}
+                title={hint ?? undefined}
                 className={`px-3 py-2.5 rounded-xl border text-xs sm:text-sm font-bold transition-all ${
                   active
                     ? `bg-gradient-to-r ${lesson.color} text-white border-transparent shadow-lg`
-                    : available
+                    : clickable
                     ? "bg-card border-border/60 text-foreground hover:border-primary/40"
                     : "bg-card border-border/30 text-muted-foreground/60 cursor-not-allowed"
                 }`}
               >
                 <div className="flex items-center justify-center gap-1.5">
-                  {!available && <Lock className="w-3 h-3" />}
+                  {!clickable && <Lock className="w-3 h-3" />}
                   <span>{ph.label}</span>
                   <span className={`text-[10px] ${active ? "text-white/80" : "text-muted-foreground"}`}>
                     {done}/{ROUNDS_PER_PHASE}
                   </span>
                 </div>
-                {!available && (
+                {!enabled ? (
                   <div className="text-[9px] mt-0.5 text-muted-foreground/70">Coming soon</div>
-                )}
+                ) : hint ? (
+                  <div className="text-[9px] mt-0.5 text-muted-foreground/70">{hint}</div>
+                ) : null}
               </button>
             );
           })}

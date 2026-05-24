@@ -288,3 +288,37 @@ export function isLessonUnlocked(lessonId: number, all: LessonProgressMap): bool
 export function isLessonComplete(p: PhaseProgress): boolean {
   return p.letter === ROUNDS_PER_PHASE && p.word === ROUNDS_PER_PHASE && p.paragraph === ROUNDS_PER_PHASE;
 }
+
+// Sequential phase unlock within a lesson:
+//   Letter     → always unlocked
+//   Word       → previous phase (Letter) fully complete (10/10)
+//   Paragraph  → previous phase (Word)   fully complete (10/10)
+// Phases not in ENABLED_PHASES are globally locked regardless of progress.
+export function isPhaseUnlocked(phase: PhaseId, p: PhaseProgress): boolean {
+  if (!ENABLED_PHASES.includes(phase)) return false;
+  if (phase === "letter") return true;
+  if (phase === "word") return p.letter >= ROUNDS_PER_PHASE;
+  return p.word >= ROUNDS_PER_PHASE;
+}
+
+// What the user still needs to finish in the previous phase to unlock `phase`.
+// Returns null if already unlocked or the phase has no prerequisite.
+export function phaseUnlockHint(phase: PhaseId, p: PhaseProgress): string | null {
+  if (isPhaseUnlocked(phase, p)) return null;
+  if (phase === "word") {
+    const left = Math.max(0, ROUNDS_PER_PHASE - p.letter);
+    return `Finish ${left} more Letter round${left === 1 ? "" : "s"}`;
+  }
+  if (phase === "paragraph") {
+    const left = Math.max(0, ROUNDS_PER_PHASE - p.word);
+    return `Finish ${left} more Word round${left === 1 ? "" : "s"}`;
+  }
+  return null;
+}
+
+// Latest phase the user is allowed to enter for a given lesson.
+export function latestUnlockedPhase(p: PhaseProgress): PhaseId {
+  if (isPhaseUnlocked("paragraph", p)) return "paragraph";
+  if (isPhaseUnlocked("word", p)) return "word";
+  return "letter";
+}
