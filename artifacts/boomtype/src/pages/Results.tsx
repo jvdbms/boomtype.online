@@ -5,7 +5,7 @@ import { Share2, Download, Trophy, RefreshCw, CheckCircle, Zap, Star } from "luc
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSubmitScore } from "@workspace/api-client-react";
-import { getLastResult, setHighScore, addXP, updateStreak, getNickname, setNickname, incrementLeaderboardSubmits } from "@/lib/storage";
+import { getLastResult, setHighScore, addXP, updateStreak, getNickname, setNickname, incrementLeaderboardSubmits, setBestAccuracy, setMaxStreak, evaluateTypingBadges, TYPING_BADGE_DEFS } from "@/lib/storage";
 import { getLevel, getLevelColor, calculateXP } from "@/lib/words";
 import AdBanner from "@/components/AdBanner";
 
@@ -16,6 +16,7 @@ export default function Results() {
   const [submitted, setSubmitted] = useState(false);
   const [showCertModal, setShowCertModal] = useState(false);
   const [streak, setStreak] = useState(0);
+  const [newBadgeIds, setNewBadgeIds] = useState<string[]>([]);
   const submitScore = useSubmitScore();
   const certRef = useRef<HTMLDivElement>(null);
 
@@ -23,10 +24,13 @@ export default function Results() {
     document.title = "Your Results | BoomType";
     if (!result) return;
     setHighScore(result.wpm);
+    setBestAccuracy(result.accuracy);
     const xp = calculateXP(result.wpm, result.accuracy, result.duration);
     addXP(xp);
     const s = updateStreak();
     setStreak(s);
+    setMaxStreak(s);
+    setNewBadgeIds(evaluateTypingBadges());
   }, []);
 
   if (!result) {
@@ -124,13 +128,15 @@ export default function Results() {
     setTimeout(() => certWindow.print(), 500);
   };
 
-  const badges: { label: string; condition: boolean; desc: string }[] = [
-    { label: "Speed Demon", condition: result.wpm >= 80, desc: "Typed over 80 WPM" },
-    { label: "Accuracy King", condition: result.accuracy >= 98, desc: "98%+ accuracy" },
-    { label: "Marathon Runner", condition: result.duration === 60, desc: "Completed 60s test" },
-    { label: "Streak Master", condition: streak >= 7, desc: "7-day streak" },
+  const sessionBadges: { label: string; desc: string; icon: string }[] = [
+    ...newBadgeIds
+      .map(id => TYPING_BADGE_DEFS[id])
+      .filter(Boolean)
+      .map(def => ({ label: def.name, desc: def.description, icon: def.icon })),
+    ...(result.duration === 60
+      ? [{ label: "Marathon Runner", desc: "Completed 60s test", icon: "🏃" }]
+      : []),
   ];
-  const earned = badges.filter(b => b.condition);
 
   return (
     <div className="min-h-screen py-10 px-4">
@@ -188,13 +194,15 @@ export default function Results() {
           </div>
 
           {/* Badges */}
-          {earned.length > 0 && (
+          {sessionBadges.length > 0 && (
             <div className="mb-6 p-4 rounded-2xl bg-card border border-border/60">
-              <h3 className="text-sm font-semibold text-muted-foreground mb-3">Badges Earned</h3>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3">
+                {newBadgeIds.length > 0 ? "New Badges Unlocked!" : "Badges Earned"}
+              </h3>
               <div className="flex flex-wrap gap-2">
-                {earned.map(b => (
-                  <div key={b.label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-sm text-primary font-medium">
-                    <CheckCircle className="w-3.5 h-3.5" />
+                {sessionBadges.map(b => (
+                  <div key={b.label} title={b.desc} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-sm text-primary font-medium">
+                    <span>{b.icon}</span>
                     {b.label}
                   </div>
                 ))}

@@ -1,6 +1,8 @@
 const STORAGE_KEYS = {
   NICKNAME:           "boomtype_nickname",
   HIGH_SCORE:         "boomtype_high_score",
+  BEST_ACCURACY:      "boomtype_best_accuracy",
+  MAX_STREAK:         "boomtype_max_streak",
   TOTAL_XP:           "boomtype_total_xp",
   STREAK_DATE:        "boomtype_streak_date",
   STREAK_COUNT:       "boomtype_streak_count",
@@ -9,6 +11,7 @@ const STORAGE_KEYS = {
   MISTAKE_HEATMAP:    "boomtype_mistake_heatmap",
   LB_SUBMIT_COUNT:    "boomtype_lb_submit_count",
   GAME_BADGES:        "boomtype_game_badges",
+  TYPING_BADGES:      "boomtype_typing_badges",
   GAME_XP:            "boomtype_game_xp",
 };
 
@@ -58,6 +61,34 @@ export function getHighScore(): number {
 export function setHighScore(wpm: number): void {
   if (wpm > getHighScore()) {
     localStorage.setItem(STORAGE_KEYS.HIGH_SCORE, wpm.toString());
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Best Accuracy
+// ─────────────────────────────────────────────────────────────
+
+export function getBestAccuracy(): number {
+  return parseFloat(localStorage.getItem(STORAGE_KEYS.BEST_ACCURACY) || "0");
+}
+
+export function setBestAccuracy(accuracy: number): void {
+  if (accuracy > getBestAccuracy()) {
+    localStorage.setItem(STORAGE_KEYS.BEST_ACCURACY, accuracy.toString());
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Max Streak (highest streak ever reached)
+// ─────────────────────────────────────────────────────────────
+
+export function getMaxStreak(): number {
+  return parseInt(localStorage.getItem(STORAGE_KEYS.MAX_STREAK) || "0", 10);
+}
+
+export function setMaxStreak(count: number): void {
+  if (count > getMaxStreak()) {
+    localStorage.setItem(STORAGE_KEYS.MAX_STREAK, count.toString());
   }
 }
 
@@ -318,6 +349,164 @@ export function awardGameBadge(badgeId: string): boolean {
   badges.push(badgeId);
   localStorage.setItem(STORAGE_KEYS.GAME_BADGES, JSON.stringify(badges));
   return true;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Typing-Test Badges
+// ─────────────────────────────────────────────────────────────
+
+export type TypingBadgeKind = "speed" | "accuracy" | "streak" | "leaderboard";
+
+export interface TypingBadgeDef {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  kind: TypingBadgeKind;
+  threshold: number;
+}
+
+export const TYPING_BADGE_DEFS: Record<string, TypingBadgeDef> = {
+  "speed-40": {
+    id: "speed-40",
+    name: "Quick Fingers",
+    description: "Hit 40 WPM in a single test",
+    icon: "🚀",
+    color: "text-blue-300",
+    kind: "speed",
+    threshold: 40,
+  },
+  "speed-60": {
+    id: "speed-60",
+    name: "Speedy Typist",
+    description: "Hit 60 WPM in a single test",
+    icon: "⚡",
+    color: "text-blue-400",
+    kind: "speed",
+    threshold: 60,
+  },
+  "speed-80": {
+    id: "speed-80",
+    name: "Speed Demon",
+    description: "Hit 80 WPM in a single test",
+    icon: "🔥",
+    color: "text-orange-400",
+    kind: "speed",
+    threshold: 80,
+  },
+  "speed-100": {
+    id: "speed-100",
+    name: "Lightning Hands",
+    description: "Hit 100 WPM in a single test",
+    icon: "💯",
+    color: "text-red-400",
+    kind: "speed",
+    threshold: 100,
+  },
+  "accuracy-95": {
+    id: "accuracy-95",
+    name: "Sharp Shooter",
+    description: "Finish a test with 95%+ accuracy",
+    icon: "🎯",
+    color: "text-green-300",
+    kind: "accuracy",
+    threshold: 95,
+  },
+  "accuracy-98": {
+    id: "accuracy-98",
+    name: "Accuracy Ace",
+    description: "Finish a test with 98%+ accuracy",
+    icon: "🏹",
+    color: "text-green-400",
+    kind: "accuracy",
+    threshold: 98,
+  },
+  "accuracy-100": {
+    id: "accuracy-100",
+    name: "Flawless",
+    description: "Finish a test with 100% accuracy",
+    icon: "✨",
+    color: "text-emerald-400",
+    kind: "accuracy",
+    threshold: 100,
+  },
+  "streak-3": {
+    id: "streak-3",
+    name: "On a Roll",
+    description: "Practice 3 days in a row",
+    icon: "🔥",
+    color: "text-orange-300",
+    kind: "streak",
+    threshold: 3,
+  },
+  "streak-7": {
+    id: "streak-7",
+    name: "Week Warrior",
+    description: "Practice 7 days in a row",
+    icon: "📅",
+    color: "text-orange-400",
+    kind: "streak",
+    threshold: 7,
+  },
+  "streak-30": {
+    id: "streak-30",
+    name: "Iron Discipline",
+    description: "Practice 30 days in a row",
+    icon: "🏆",
+    color: "text-yellow-400",
+    kind: "streak",
+    threshold: 30,
+  },
+  "pro-typist": {
+    id: "pro-typist",
+    name: "Pro Typist",
+    description: "Submit 10 scores to the leaderboard",
+    icon: "👑",
+    color: "text-yellow-400",
+    kind: "leaderboard",
+    threshold: 10,
+  },
+};
+
+export function getTypingBadges(): string[] {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.TYPING_BADGES) || "[]"); }
+  catch { return []; }
+}
+
+export function awardTypingBadge(badgeId: string): boolean {
+  const badges = getTypingBadges();
+  if (badges.includes(badgeId)) return false;
+  badges.push(badgeId);
+  localStorage.setItem(STORAGE_KEYS.TYPING_BADGES, JSON.stringify(badges));
+  return true;
+}
+
+/**
+ * Evaluate all typing badge definitions against current best stats and award
+ * any newly-earned ones. Returns the list of badge IDs that were newly awarded
+ * on this call (useful for celebratory UI). Caller is responsible for ensuring
+ * best-stats getters reflect the latest test (i.e. call setHighScore /
+ * setBestAccuracy / setMaxStreak before this).
+ */
+export function evaluateTypingBadges(): string[] {
+  const bestWpm  = getHighScore();
+  const bestAcc  = getBestAccuracy();
+  const maxStrk  = getMaxStreak();
+  const lbCount  = getLeaderboardSubmitCount();
+
+  const newlyAwarded: string[] = [];
+  for (const def of Object.values(TYPING_BADGE_DEFS)) {
+    let meets = false;
+    switch (def.kind) {
+      case "speed":       meets = bestWpm >= def.threshold; break;
+      case "accuracy":    meets = bestAcc >= def.threshold; break;
+      case "streak":      meets = maxStrk >= def.threshold; break;
+      case "leaderboard": meets = lbCount >= def.threshold; break;
+    }
+    if (meets && awardTypingBadge(def.id)) newlyAwarded.push(def.id);
+  }
+  return newlyAwarded;
 }
 
 export function calculateGameXP(game: string, score: number): number {

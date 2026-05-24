@@ -17,6 +17,7 @@ import {
   getWeeklyImprovement, getLeaderboardSubmitCount,
   clearMistakeHeatmap, getGameBadges, GAME_BADGE_DEFS,
   getGameXP, getTypingXP, getTotalXP,
+  TYPING_BADGE_DEFS, getTypingBadges, evaluateTypingBadges,
 } from "@/lib/storage";
 
 // ─── Types ────────────────────────────────────────────────────
@@ -120,6 +121,11 @@ export default function Profile() {
   const isPremium     = lbCount >= 10;
   const gameBadgeIds  = getGameBadges();
   const gameBadges    = gameBadgeIds.map(id => GAME_BADGE_DEFS[id]).filter(Boolean);
+  // Backfill typing badges (in case best stats were earned before this feature shipped)
+  evaluateTypingBadges();
+  const typingBadgeIds = getTypingBadges();
+  const typingBadgeDefs = Object.values(TYPING_BADGE_DEFS);
+  const earnedTypingBadges = typingBadgeDefs.filter(def => typingBadgeIds.includes(def.id));
   const localTotalXP  = getTotalXP();
   const localGameXP   = getGameXP();
   const localTypingXP = getTypingXP();
@@ -292,6 +298,43 @@ export default function Profile() {
               </div>
             </div>
           )}
+
+          {/* ── Typing-Test Badges ── */}
+          <div className="rounded-2xl bg-card border border-border/60 p-5 mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Crown className="w-4 h-4 text-yellow-400" />
+              <h2 className="font-bold text-sm">Typing Achievements</h2>
+              <span className="ml-auto text-xs text-muted-foreground">
+                {earnedTypingBadges.length} / {typingBadgeDefs.length} earned
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {typingBadgeDefs.map(def => {
+                const earned = typingBadgeIds.includes(def.id);
+                return (
+                  <div
+                    key={def.id}
+                    title={def.description}
+                    className={`rounded-xl border p-3 flex items-start gap-2 transition-all ${
+                      earned
+                        ? "bg-white/5 border-border/60"
+                        : "bg-black/20 border-border/30 opacity-60 grayscale"
+                    }`}
+                  >
+                    <span className="text-xl shrink-0">{def.icon}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className={`text-xs font-bold truncate ${earned ? def.color : "text-muted-foreground"}`}>
+                        {def.name}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                        {def.description}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
           {/* ── Mini-Game Badges ── */}
           {gameBadges.length > 0 && (

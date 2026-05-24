@@ -3,9 +3,13 @@ import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { Gamepad2, CloudRain, Sword, Zap, Star, Trophy, Layers, Wrench, AlignJustify, Wind, Lock, Award, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { GAME_BADGE_DEFS, getGameBadges, getLeaderboardSubmitCount } from "@/lib/storage";
+import {
+  GAME_BADGE_DEFS, getGameBadges, getLeaderboardSubmitCount,
+  TYPING_BADGE_DEFS, getTypingBadges, getHighScore, getBestAccuracy, getMaxStreak,
+  evaluateTypingBadges,
+} from "@/lib/storage";
 
-interface TypingBadgeDef {
+interface TypingBadgeView {
   id: string;
   name: string;
   description: string;
@@ -158,6 +162,10 @@ export default function Games() {
   const [highScores, setHighScores] = useState<Record<string, number>>({});
   const [filter, setFilter] = useState<"all" | "Easy" | "Medium" | "Hard">("all");
   const [earnedBadgeIds, setEarnedBadgeIds] = useState<string[]>([]);
+  const [earnedTypingBadgeIds, setEarnedTypingBadgeIds] = useState<string[]>([]);
+  const [bestWpm, setBestWpm] = useState(0);
+  const [bestAcc, setBestAcc] = useState(0);
+  const [maxStreak, setMaxStreakState] = useState(0);
   const [lbCount, setLbCount] = useState(0);
 
   useEffect(() => {
@@ -172,6 +180,12 @@ export default function Games() {
     setHighScores(scores);
     setEarnedBadgeIds(getGameBadges());
     setLbCount(getLeaderboardSubmitCount());
+    setBestWpm(getHighScore());
+    setBestAcc(getBestAccuracy());
+    setMaxStreakState(getMaxStreak());
+    // Backfill any badges earned before this feature shipped
+    evaluateTypingBadges();
+    setEarnedTypingBadgeIds(getTypingBadges());
   }, []);
 
   const gameBadgeList = Object.values(GAME_BADGE_DEFS).map(def => ({
@@ -180,17 +194,35 @@ export default function Games() {
   }));
   const earnedGameCount = gameBadgeList.filter(b => b.earned).length;
 
-  const typingBadges: TypingBadgeDef[] = [
-    {
-      id: "pro-typist",
-      name: "Pro Typist",
-      description: "Submit 10 scores to the leaderboard",
-      icon: "👑",
-      color: "text-yellow-400",
-      earned: lbCount >= 10,
-      progress: lbCount < 10 ? `${lbCount} / 10 submissions` : undefined,
-    },
-  ];
+  const typingBadges: TypingBadgeView[] = Object.values(TYPING_BADGE_DEFS).map(def => {
+    const earned = earnedTypingBadgeIds.includes(def.id);
+    let progress: string | undefined;
+    if (!earned) {
+      switch (def.kind) {
+        case "speed":
+          progress = `${Math.round(bestWpm)} / ${def.threshold} WPM`;
+          break;
+        case "accuracy":
+          progress = `${Math.round(bestAcc)}% / ${def.threshold}%`;
+          break;
+        case "streak":
+          progress = `${maxStreak} / ${def.threshold} days`;
+          break;
+        case "leaderboard":
+          progress = `${lbCount} / ${def.threshold} submissions`;
+          break;
+      }
+    }
+    return {
+      id: def.id,
+      name: def.name,
+      description: def.description,
+      icon: def.icon,
+      color: def.color,
+      earned,
+      progress,
+    };
+  });
   const earnedTypingCount = typingBadges.filter(b => b.earned).length;
   const totalEarned = earnedGameCount + earnedTypingCount;
   const totalBadges = gameBadgeList.length + typingBadges.length;
