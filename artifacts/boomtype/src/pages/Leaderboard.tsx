@@ -1,14 +1,24 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { Trophy, Medal, CloudRain, Sword, Zap } from "lucide-react";
+import { Trophy, Medal, CloudRain, Sword, Zap, Sparkles } from "lucide-react";
 import {
   useGetLeaderboard,
   getGetLeaderboardQueryKey,
   useGetGameLeaderboard,
   getGetGameLeaderboardQueryKey,
+  useGetGameXpLeaderboard,
+  getGetGameXpLeaderboardQueryKey,
+  useGetMyGameXpRank,
+  getGetMyGameXpRankQueryKey,
 } from "@workspace/api-client-react";
-import type { GetLeaderboardParams, GetGameLeaderboardParams } from "@workspace/api-client-react";
+import type {
+  GetLeaderboardParams,
+  GetGameLeaderboardParams,
+  GetGameXpLeaderboardParams,
+  GetMyGameXpRankParams,
+} from "@workspace/api-client-react";
+import { getNickname } from "@/lib/storage";
 import { getLevelColor } from "@/lib/words";
 import AdBanner from "@/components/AdBanner";
 
@@ -51,6 +61,20 @@ export default function Leaderboard() {
   const gameParams: GetGameLeaderboardParams = { game: activeGame, limit: 10 };
   const { data: gameLeaderboard, isLoading: gameLeaderboardLoading } = useGetGameLeaderboard(gameParams, {
     query: { queryKey: getGetGameLeaderboardQueryKey(gameParams) }
+  });
+
+  const xpParams: GetGameXpLeaderboardParams = { limit: 10 };
+  const { data: xpLeaderboard, isLoading: xpLeaderboardLoading } = useGetGameXpLeaderboard(xpParams, {
+    query: { queryKey: getGetGameXpLeaderboardQueryKey(xpParams) }
+  });
+
+  const nickname = getNickname().trim();
+  const myXpParams: GetMyGameXpRankParams = { nickname };
+  const { data: myXpRank, isLoading: myXpRankLoading } = useGetMyGameXpRank(myXpParams, {
+    query: {
+      queryKey: getGetMyGameXpRankQueryKey(myXpParams),
+      enabled: nickname.length > 0,
+    },
   });
 
   const rankStyle = (rank: number) => {
@@ -183,6 +207,115 @@ export default function Leaderboard() {
               <p className="text-muted-foreground">No entries yet. Be the first!</p>
               <Link href="/test" className="inline-block mt-4 text-sm text-primary hover:underline">
                 Take a test →
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* Global Game XP Leaderboard */}
+        <div className="mb-4 flex items-center gap-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-sm font-medium">
+            <Sparkles className="w-4 h-4" />
+            Global Game XP
+          </div>
+        </div>
+
+        {/* Your Game XP Rank Card */}
+        {nickname ? (
+          <div
+            className="rounded-2xl bg-accent/5 border border-accent/30 p-4 mb-4 flex items-center gap-4"
+            data-testid="my-game-xp-rank"
+          >
+            <div className="w-12 h-12 rounded-xl bg-accent/15 border border-accent/30 flex items-center justify-center text-accent font-black">
+              {myXpRankLoading ? (
+                <div className="w-4 h-4 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+              ) : myXpRank?.rank != null ? (
+                <span className="text-lg">#{myXpRank.rank}</span>
+              ) : (
+                <Sparkles className="w-5 h-5" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">
+                Your Game XP Rank
+              </div>
+              <div className="font-bold truncate">
+                {nickname}
+                {myXpRank && myXpRank.totalPlayers > 0 && (
+                  <span className="ml-2 text-xs text-muted-foreground font-normal">
+                    of {myXpRank.totalPlayers.toLocaleString()} player{myXpRank.totalPlayers === 1 ? "" : "s"}
+                  </span>
+                )}
+              </div>
+              {!myXpRankLoading && myXpRank?.rank == null && (
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Play a mini-game to earn your first Game XP
+                </div>
+              )}
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-black text-accent">
+                {myXpRankLoading ? "…" : (myXpRank?.xp ?? 0).toLocaleString()}
+              </div>
+              <div className="text-xs text-muted-foreground">XP</div>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-2xl bg-card/40 border border-border/60 border-dashed p-4 mb-4 text-center text-sm text-muted-foreground">
+            Set a nickname on the test page to see your global Game XP rank here.
+          </div>
+        )}
+
+        <div className="rounded-2xl bg-card border border-border/60 overflow-hidden mb-10">
+          <div className="p-4 border-b border-border/60 flex items-center justify-between">
+            <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              Top Mini-Game Players — All Games
+            </span>
+            <Link href="/games">
+              <span className="text-xs text-primary hover:underline">Play games →</span>
+            </Link>
+          </div>
+
+          {xpLeaderboardLoading ? (
+            <div className="p-8 text-center">
+              <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-3" />
+              <p className="text-muted-foreground text-sm">Loading rankings...</p>
+            </div>
+          ) : xpLeaderboard && xpLeaderboard.length > 0 ? (
+            <div className="divide-y divide-border/40">
+              {xpLeaderboard.map((entry, i) => {
+                const style = rankStyle(entry.rank);
+                return (
+                  <Link key={entry.nickname} href={`/profile/${encodeURIComponent(entry.nickname)}`}>
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="flex items-center gap-4 p-4 hover:bg-white/3 transition-colors cursor-pointer group"
+                      data-testid={`xp-leaderboard-row-${i}`}
+                    >
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black ${style.bg} ${style.text}`}>
+                        {entry.rank <= 3 ? <Medal className="w-4 h-4" /> : entry.rank}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold truncate group-hover:text-primary transition-colors">{entry.nickname}</div>
+                        <div className="text-xs text-muted-foreground">{entry.gamesPlayed} game{entry.gamesPlayed === 1 ? "" : "s"} played</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-black text-accent">{entry.xp.toLocaleString()}</div>
+                        <div className="text-xs text-muted-foreground">XP</div>
+                      </div>
+                    </motion.div>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="p-12 text-center">
+              <Sparkles className="w-12 h-12 text-accent/30 mx-auto mb-3" />
+              <p className="text-muted-foreground">No game XP earned yet — be the first to play!</p>
+              <Link href="/games" className="inline-block mt-4 text-sm text-primary hover:underline">
+                Play a mini-game →
               </Link>
             </div>
           )}

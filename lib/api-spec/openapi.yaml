@@ -181,6 +181,46 @@ paths:
                 items:
                   $ref: "#/components/schemas/GameLeaderboardEntry"
 
+  /leaderboard/games-xp:
+    get:
+      operationId: getGameXpLeaderboard
+      tags: [leaderboard]
+      summary: Get global mini-game XP leaderboard (ranks players by total game XP)
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Game XP leaderboard entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GameXpLeaderboardEntry"
+
+  /leaderboard/games-xp/me:
+    get:
+      operationId: getMyGameXpRank
+      tags: [leaderboard]
+      summary: Get the current user's global game XP rank
+      parameters:
+        - name: nickname
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User's game XP rank info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyGameXpRank"
+
   /users/{nickname}:
     get:
       operationId: getUserProfile
@@ -390,6 +430,44 @@ components:
         - rank
         - nickname
         - score
+
+    GameXpLeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        nickname:
+          type: string
+        xp:
+          type: integer
+        gamesPlayed:
+          type: integer
+      required:
+        - rank
+        - nickname
+        - xp
+        - gamesPlayed
+
+    MyGameXpRank:
+      type: object
+      properties:
+        nickname:
+          type: string
+        rank:
+          type: integer
+          nullable: true
+          description: User's global rank by total mini-game XP. Null if no game scores.
+        xp:
+          type: integer
+          description: User's total mini-game XP.
+        totalPlayers:
+          type: integer
+          description: Total distinct players with mini-game scores.
+      required:
+        - nickname
+        - rank
+        - xp
+        - totalPlayers
 
     MyLeaderboardRank:
       type: object

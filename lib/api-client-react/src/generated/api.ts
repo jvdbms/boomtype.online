@@ -20,12 +20,16 @@ import type {
   ErrorResponse,
   GameLeaderboardEntry,
   GameScore,
+  GameXpLeaderboardEntry,
   GetGameLeaderboardParams,
+  GetGameXpLeaderboardParams,
   GetLeaderboardParams,
+  GetMyGameXpRankParams,
   GetMyLeaderboardRankParams,
   GetRecentActivityParams,
   HealthStatus,
   LeaderboardEntry,
+  MyGameXpRank,
   MyLeaderboardRank,
   Score,
   StatsSummary,
@@ -745,6 +749,203 @@ export function useGetGameLeaderboard<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetGameLeaderboardQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get global mini-game XP leaderboard (ranks players by total game XP)
+ */
+export const getGetGameXpLeaderboardUrl = (
+  params?: GetGameXpLeaderboardParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/leaderboard/games-xp?${stringifiedParams}`
+    : `/api/leaderboard/games-xp`;
+};
+
+export const getGameXpLeaderboard = async (
+  params?: GetGameXpLeaderboardParams,
+  options?: RequestInit,
+): Promise<GameXpLeaderboardEntry[]> => {
+  return customFetch<GameXpLeaderboardEntry[]>(
+    getGetGameXpLeaderboardUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetGameXpLeaderboardQueryKey = (
+  params?: GetGameXpLeaderboardParams,
+) => {
+  return [`/api/leaderboard/games-xp`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetGameXpLeaderboardQueryOptions = <
+  TData = Awaited<ReturnType<typeof getGameXpLeaderboard>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetGameXpLeaderboardParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getGameXpLeaderboard>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetGameXpLeaderboardQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getGameXpLeaderboard>>
+  > = ({ signal }) =>
+    getGameXpLeaderboard(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getGameXpLeaderboard>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetGameXpLeaderboardQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getGameXpLeaderboard>>
+>;
+export type GetGameXpLeaderboardQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get global mini-game XP leaderboard (ranks players by total game XP)
+ */
+
+export function useGetGameXpLeaderboard<
+  TData = Awaited<ReturnType<typeof getGameXpLeaderboard>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetGameXpLeaderboardParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getGameXpLeaderboard>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetGameXpLeaderboardQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get the current user's global game XP rank
+ */
+export const getGetMyGameXpRankUrl = (params: GetMyGameXpRankParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/leaderboard/games-xp/me?${stringifiedParams}`
+    : `/api/leaderboard/games-xp/me`;
+};
+
+export const getMyGameXpRank = async (
+  params: GetMyGameXpRankParams,
+  options?: RequestInit,
+): Promise<MyGameXpRank> => {
+  return customFetch<MyGameXpRank>(getGetMyGameXpRankUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyGameXpRankQueryKey = (params?: GetMyGameXpRankParams) => {
+  return [`/api/leaderboard/games-xp/me`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetMyGameXpRankQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyGameXpRank>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetMyGameXpRankParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMyGameXpRank>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyGameXpRankQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyGameXpRank>>> = ({
+    signal,
+  }) => getMyGameXpRank(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyGameXpRank>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyGameXpRankQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyGameXpRank>>
+>;
+export type GetMyGameXpRankQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the current user's global game XP rank
+ */
+
+export function useGetMyGameXpRank<
+  TData = Awaited<ReturnType<typeof getMyGameXpRank>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetMyGameXpRankParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMyGameXpRank>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyGameXpRankQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

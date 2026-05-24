@@ -86,6 +86,23 @@ export interface GameLeaderboardEntry {
   score: number;
 }
 
+export interface GameXpLeaderboardEntry {
+  rank: number;
+  nickname: string;
+  xp: number;
+  gamesPlayed: number;
+}
+
+export interface MyGameXpRank {
+  nickname: string;
+  /** User's global rank by total mini-game XP. Null if no game scores. */
+  rank: number | null;
+  /** User's total mini-game XP. */
+  xp: number;
+  /** Total distinct players with mini-game scores. */
+  totalPlayers: number;
+}
+
 export type MyLeaderboardRankPeriod =
   (typeof MyLeaderboardRankPeriod)[keyof typeof MyLeaderboardRankPeriod];
 
@@ -155,3 +172,11 @@ export const GetGameLeaderboardGame = {
   "zombie-attack": "zombie-attack",
   "speed-burst": "speed-burst",
 } as const;
+
+export type GetGameXpLeaderboardParams = {
+  limit?: number;
+};
+
+export type GetMyGameXpRankParams = {
+  nickname: string;
+};

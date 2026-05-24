@@ -140,6 +140,46 @@ export const GetGameLeaderboardResponse = zod.array(
 );
 
 /**
+ * @summary Get global mini-game XP leaderboard (ranks players by total game XP)
+ */
+export const getGameXpLeaderboardQueryLimitDefault = 10;
+
+export const GetGameXpLeaderboardQueryParams = zod.object({
+  limit: zod.coerce.number().default(getGameXpLeaderboardQueryLimitDefault),
+});
+
+export const GetGameXpLeaderboardResponseItem = zod.object({
+  rank: zod.number(),
+  nickname: zod.string(),
+  xp: zod.number(),
+  gamesPlayed: zod.number(),
+});
+export const GetGameXpLeaderboardResponse = zod.array(
+  GetGameXpLeaderboardResponseItem,
+);
+
+/**
+ * @summary Get the current user's global game XP rank
+ */
+export const GetMyGameXpRankQueryParams = zod.object({
+  nickname: zod.coerce.string(),
+});
+
+export const GetMyGameXpRankResponse = zod.object({
+  nickname: zod.string(),
+  rank: zod
+    .number()
+    .nullable()
+    .describe(
+      "User's global rank by total mini-game XP. Null if no game scores.",
+    ),
+  xp: zod.number().describe("User's total mini-game XP."),
+  totalPlayers: zod
+    .number()
+    .describe("Total distinct players with mini-game scores."),
+});
+
+/**
  * @summary Get user profile and personal bests
  */
 export const GetUserProfileParams = zod.object({
