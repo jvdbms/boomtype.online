@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { Gamepad2, CloudRain, Sword, Zap, Star, Trophy, Layers, Wrench, AlignJustify, Wind, Lock, Award, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BadgeShareButton } from "@/components/BadgeShareButton";
 import {
   GAME_BADGE_DEFS, getGameBadges, getLeaderboardSubmitCount,
   TYPING_BADGE_DEFS, getTypingBadges, getHighScore, getBestAccuracy, getMaxStreak,
@@ -358,8 +359,13 @@ export default function Games() {
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className={`text-xs font-bold truncate ${badge.earned ? badge.color : "text-muted-foreground"}`}>
-                      {badge.name}
+                    <div className="flex items-start gap-1.5">
+                      <div className={`text-xs font-bold truncate flex-1 ${badge.earned ? badge.color : "text-muted-foreground"}`}>
+                        {badge.name}
+                      </div>
+                      {badge.earned && (
+                        <BadgeShareButton badgeName={badge.name} badgeIcon={badge.icon} />
+                      )}
                     </div>
                     <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">
                       {badge.description}
@@ -401,8 +407,13 @@ export default function Games() {
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className={`text-xs font-bold truncate ${badge.earned ? badge.color : "text-muted-foreground"}`}>
-                      {badge.name}
+                    <div className="flex items-start gap-1.5">
+                      <div className={`text-xs font-bold truncate flex-1 ${badge.earned ? badge.color : "text-muted-foreground"}`}>
+                        {badge.name}
+                      </div>
+                      {badge.earned && (
+                        <BadgeShareButton badgeName={badge.name} badgeIcon={badge.icon} />
+                      )}
                     </div>
                     <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">
                       {badge.description}
