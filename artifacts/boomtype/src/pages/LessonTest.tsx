@@ -11,17 +11,24 @@ import KeyboardVisualizer from "@/components/KeyboardVisualizer";
 import {
   LESSON_BY_ID,
   ROUNDS_PER_PHASE,
+  ENABLED_PHASES,
   getPhaseProgress,
   setRoundCompleted,
   type PhaseId,
   type PhaseProgress,
 } from "@/lib/lessonContent";
 
-const PHASES: { id: PhaseId; label: string; available: boolean }[] = [
-  { id: "letter",    label: "Letter",    available: true },
-  { id: "word",      label: "Word",      available: false },
-  { id: "paragraph", label: "Paragraph", available: false },
+const PHASES: { id: PhaseId; label: string }[] = [
+  { id: "letter",    label: "Letter" },
+  { id: "word",      label: "Word" },
+  { id: "paragraph", label: "Paragraph" },
 ];
+
+const PHASE_LABEL: Record<PhaseId, string> = {
+  letter: "Letter",
+  word: "Word",
+  paragraph: "Paragraph",
+};
 
 interface RoundStats {
   wpm: number;
@@ -39,49 +46,68 @@ export default function LessonTest() {
   const [progress, setProgress] = useState<PhaseProgress>({ letter: 0, word: 0, paragraph: 0 });
   const [roundIndex, setRoundIndex] = useState(0);
 
-  // Letter phase live state
-  const [charIndex, setCharIndex] = useState(0);
-  const [errors, setErrors] = useState(0);
+  // Shared live state
   const [keystrokes, setKeystrokes] = useState(0);
+  const [errors, setErrors] = useState(0);
+  const [correctChars, setCorrectChars] = useState(0); // for WPM
   const [shake, setShake] = useState(false);
   const [flash, setFlash] = useState<"correct" | "wrong" | null>(null);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState<number>(Date.now());
   const [roundResult, setRoundResult] = useState<RoundStats | null>(null);
 
+  // Letter-phase state
+  const [charIndex, setCharIndex] = useState(0);
+
+  // Word-phase state
+  const [wordIdx, setWordIdx] = useState(0);
+  const [wordInput, setWordInput] = useState("");
+
   const liveRef = useRef<HTMLDivElement>(null);
 
-  // Load progress and start at the user's next-uncompleted round
+  // Load progress whenever lesson or phase changes
   useEffect(() => {
     if (!lesson) return;
     const p = getPhaseProgress(lessonId);
     setProgress(p);
-    setRoundIndex(Math.min(p.letter, ROUNDS_PER_PHASE - 1));
-  }, [lessonId, lesson]);
+    setRoundIndex(Math.min(p[phase], ROUNDS_PER_PHASE - 1));
+  }, [lessonId, lesson, phase]);
 
-  // Page title
   useEffect(() => {
     if (lesson) document.title = `${lesson.title} | BoomType`;
   }, [lesson]);
 
-  // Live timer tick (drives WPM updates while typing)
   useEffect(() => {
     if (startedAt === null || roundResult) return;
     const t = setInterval(() => setNow(Date.now()), 250);
     return () => clearInterval(t);
   }, [startedAt, roundResult]);
 
-  // Keep focus on the practice area for keyboard input
   useEffect(() => {
     liveRef.current?.focus();
   }, [roundIndex, phase, roundResult]);
 
-  const target = lesson?.letterRounds[roundIndex] ?? "";
+  // Targets
+  const letterTarget = lesson?.letterRounds[roundIndex] ?? "";
+  const wordTarget = useMemo<string[]>(
+    () => lesson?.wordRounds[roundIndex] ?? [],
+    [lesson, roundIndex],
+  );
+
+  // Total chars expected this round (used for WPM denominator on word phase)
+  const totalTargetChars = useMemo(() => {
+    if (phase === "letter") return letterTarget.length;
+    // include spaces between words
+    return wordTarget.reduce((sum, w) => sum + w.length, 0) + Math.max(0, wordTarget.length - 1);
+  }, [phase, letterTarget, wordTarget]);
 
   const resetRound = useCallback(() => {
     setCharIndex(0);
+    setWordIdx(0);
+    setWordInput("");
     setErrors(0);
     setKeystrokes(0);
+    setCorrectChars(0);
     setStartedAt(null);
     setRoundResult(null);
     setFlash(null);
@@ -90,17 +116,21 @@ export default function LessonTest() {
     requestAnimationFrame(() => liveRef.current?.focus());
   }, []);
 
-  // Reset state when round/phase changes
   useEffect(() => {
     resetRound();
   }, [roundIndex, phase, resetRound]);
 
   const finishRound = useCallback(
-    (finalErrors: number, finalKeystrokes: number, finishedAt: number, startTs: number) => {
+    (
+      finalCorrectChars: number,
+      finalErrors: number,
+      finalKeystrokes: number,
+      finishedAt: number,
+      startTs: number,
+    ) => {
       const durationMs = Math.max(finishedAt - startTs, 1);
       const minutes = durationMs / 60000;
-      // Standard WPM = (chars / 5) / minutes
-      const wpm = Math.max(0, Math.round(target.length / 5 / minutes));
+      const wpm = Math.max(0, Math.round(finalCorrectChars / 5 / minutes));
       const accuracy = finalKeystrokes > 0
         ? Math.max(0, Math.round(((finalKeystrokes - finalErrors) / finalKeystrokes) * 100))
         : 100;
@@ -118,53 +148,157 @@ export default function LessonTest() {
         duration: Math.round(durationMs / 1000),
       });
     },
-    [lessonId, phase, roundIndex, lesson, target.length],
+    [lessonId, phase, roundIndex, lesson],
   );
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (roundResult) return;
-      if (e.key === "Tab" || e.key === "Shift" || e.key === "CapsLock" || e.key === "Meta" || e.key === "Control" || e.key === "Alt") return;
-      if (e.key.length !== 1) return;
-      e.preventDefault();
+      const k = e.key;
+      if (k === "Tab" || k === "Shift" || k === "CapsLock" || k === "Meta" || k === "Control" || k === "Alt") return;
 
-      const expected = target[charIndex];
-      if (!expected) return;
+      // ── LETTER PHASE ────────────────────────────────────────
+      if (phase === "letter") {
+        if (k.length !== 1) return;
+        e.preventDefault();
 
-      const startTs = startedAt ?? Date.now();
-      if (startedAt === null) setStartedAt(startTs);
+        const expected = letterTarget[charIndex];
+        if (!expected) return;
 
-      const nextKeystrokes = keystrokes + 1;
-      setKeystrokes(nextKeystrokes);
+        const startTs = startedAt ?? Date.now();
+        if (startedAt === null) setStartedAt(startTs);
 
-      if (e.key === expected) {
-        const nextIndex = charIndex + 1;
-        setCharIndex(nextIndex);
-        setFlash("correct");
-        setTimeout(() => setFlash((f) => (f === "correct" ? null : f)), 120);
+        const nextKeystrokes = keystrokes + 1;
+        setKeystrokes(nextKeystrokes);
 
-        if (nextIndex >= target.length) {
-          finishRound(errors, nextKeystrokes, Date.now(), startTs);
+        if (k === expected) {
+          const nextIndex = charIndex + 1;
+          const nextCorrect = correctChars + 1;
+          setCharIndex(nextIndex);
+          setCorrectChars(nextCorrect);
+          setFlash("correct");
+          setTimeout(() => setFlash((f) => (f === "correct" ? null : f)), 120);
+
+          if (nextIndex >= letterTarget.length) {
+            finishRound(nextCorrect, errors, nextKeystrokes, Date.now(), startTs);
+          }
+        } else {
+          const nextErrors = errors + 1;
+          setErrors(nextErrors);
+          setFlash("wrong");
+          setShake(true);
+          setTimeout(() => setShake(false), 250);
+          setTimeout(() => setFlash((f) => (f === "wrong" ? null : f)), 180);
         }
-      } else {
-        const nextErrors = errors + 1;
-        setErrors(nextErrors);
-        setFlash("wrong");
-        setShake(true);
-        setTimeout(() => setShake(false), 250);
-        setTimeout(() => setFlash((f) => (f === "wrong" ? null : f)), 180);
+        return;
+      }
+
+      // ── WORD PHASE ─────────────────────────────────────────
+      if (phase === "word") {
+        const current = wordTarget[wordIdx];
+        if (current === undefined) return;
+
+        // Backspace: delete last typed char and fully undo its metric impact.
+        // (Otherwise users could type correct → backspace → retype and inflate WPM.)
+        if (k === "Backspace") {
+          e.preventDefault();
+          if (wordInput.length === 0) return;
+          const lastPos = wordInput.length - 1;
+          const lastTyped = wordInput[lastPos];
+          const expectedAtLast = current[lastPos]; // undefined for overflow chars
+          if (expectedAtLast !== undefined && lastTyped === expectedAtLast) {
+            setCorrectChars((c) => Math.max(0, c - 1));
+          } else {
+            setErrors((er) => Math.max(0, er - 1));
+          }
+          setKeystrokes((k2) => Math.max(0, k2 - 1));
+          setWordInput((s) => s.slice(0, -1));
+          return;
+        }
+
+        // Submit word with space or Enter
+        if (k === " " || k === "Enter") {
+          e.preventDefault();
+          if (wordInput.length === 0) return;
+
+          const startTs = startedAt ?? Date.now();
+          if (startedAt === null) setStartedAt(startTs);
+
+          const nextKeystrokes = keystrokes + 1; // count the space/enter
+          setKeystrokes(nextKeystrokes);
+
+          const isCorrect = wordInput === current;
+          const isLastWord = wordIdx + 1 >= wordTarget.length;
+          let nextCorrect = correctChars;
+          let nextErrors = errors;
+
+          if (isCorrect && !isLastWord) {
+            // count the separating space as a correct char
+            nextCorrect = correctChars + 1;
+            setCorrectChars(nextCorrect);
+            setFlash("correct");
+            setTimeout(() => setFlash((f) => (f === "correct" ? null : f)), 120);
+          } else if (!isCorrect) {
+            nextErrors = errors + 1;
+            setErrors(nextErrors);
+            setFlash("wrong");
+            setShake(true);
+            setTimeout(() => setShake(false), 250);
+            setTimeout(() => setFlash((f) => (f === "wrong" ? null : f)), 180);
+          }
+
+          setWordIdx(wordIdx + 1);
+          setWordInput("");
+
+          if (isLastWord) {
+            finishRound(nextCorrect, nextErrors, nextKeystrokes, Date.now(), startTs);
+          }
+          return;
+        }
+
+        // Regular character
+        if (k.length !== 1) return;
+        e.preventDefault();
+
+        const startTs = startedAt ?? Date.now();
+        if (startedAt === null) setStartedAt(startTs);
+
+        const nextKeystrokes = keystrokes + 1;
+        setKeystrokes(nextKeystrokes);
+
+        const pos = wordInput.length;
+        const expected = current[pos];
+
+        if (expected !== undefined && k === expected) {
+          setCorrectChars((c) => c + 1);
+          setWordInput((s) => s + k);
+        } else {
+          setErrors((er) => er + 1);
+          // Still append so the user sees the red overflow / mistake
+          setWordInput((s) => s + k);
+          setFlash("wrong");
+          setShake(true);
+          setTimeout(() => setShake(false), 200);
+          setTimeout(() => setFlash((f) => (f === "wrong" ? null : f)), 160);
+        }
+        return;
       }
     },
-    [roundResult, target, charIndex, startedAt, keystrokes, errors, finishRound],
+    [
+      roundResult, phase, letterTarget, charIndex, startedAt, keystrokes, errors,
+      correctChars, wordTarget, wordIdx, wordInput, finishRound,
+    ],
   );
 
   const liveStats = useMemo(() => {
     const durationMs = startedAt ? Math.max(now - startedAt, 1) : 0;
     const minutes = durationMs / 60000;
-    const wpm = minutes > 0 ? Math.max(0, Math.round((charIndex / 5) / minutes)) : 0;
-    const accuracy = keystrokes > 0 ? Math.max(0, Math.round(((keystrokes - errors) / keystrokes) * 100)) : 100;
+    const wpm = minutes > 0 ? Math.max(0, Math.round((correctChars / 5) / minutes)) : 0;
+    const accuracy = keystrokes > 0
+      ? Math.max(0, Math.round(((keystrokes - errors) / keystrokes) * 100))
+      : 100;
     return { wpm, accuracy };
-  }, [startedAt, now, charIndex, keystrokes, errors]);
+  }, [startedAt, now, correctChars, keystrokes, errors]);
 
   if (!lesson) {
     return (
@@ -177,11 +311,24 @@ export default function LessonTest() {
     );
   }
 
-  const currentChar = target[charIndex] || "";
+  const currentLetter = letterTarget[charIndex] || "";
+  const currentWord = wordTarget[wordIdx] || "";
+  // Key to highlight on the visualizer
+  const highlightKey =
+    phase === "letter"
+      ? currentLetter?.toLowerCase()
+      : (currentWord[wordInput.length] ?? currentWord[currentWord.length - 1] ?? "")?.toLowerCase();
+
   const phaseDone = progress[phase];
   const overallPct = (phaseDone / ROUNDS_PER_PHASE) * 100;
   const isLastRound = roundIndex >= ROUNDS_PER_PHASE - 1;
   const phaseComplete = !!roundResult && isLastRound;
+
+  const progressLabel =
+    phase === "letter"
+      ? `${charIndex}/${letterTarget.length}`
+      : `${wordIdx}/${wordTarget.length}`;
+  const progressLabelTitle = phase === "letter" ? "Letters" : "Words";
 
   return (
     <div className="min-h-screen py-6 px-4 relative">
@@ -217,29 +364,30 @@ export default function LessonTest() {
         <div className="grid grid-cols-3 gap-2 mb-4">
           {PHASES.map((ph) => {
             const active = ph.id === phase;
+            const available = ENABLED_PHASES.includes(ph.id);
             const done = progress[ph.id];
             return (
               <button
                 key={ph.id}
-                onClick={() => ph.available && setPhase(ph.id)}
-                disabled={!ph.available}
+                onClick={() => available && setPhase(ph.id)}
+                disabled={!available}
                 data-testid={`phase-tab-${ph.id}`}
                 className={`px-3 py-2.5 rounded-xl border text-xs sm:text-sm font-bold transition-all ${
                   active
                     ? `bg-gradient-to-r ${lesson.color} text-white border-transparent shadow-lg`
-                    : ph.available
+                    : available
                     ? "bg-card border-border/60 text-foreground hover:border-primary/40"
                     : "bg-card border-border/30 text-muted-foreground/60 cursor-not-allowed"
                 }`}
               >
                 <div className="flex items-center justify-center gap-1.5">
-                  {!ph.available && <Lock className="w-3 h-3" />}
+                  {!available && <Lock className="w-3 h-3" />}
                   <span>{ph.label}</span>
                   <span className={`text-[10px] ${active ? "text-white/80" : "text-muted-foreground"}`}>
                     {done}/{ROUNDS_PER_PHASE}
                   </span>
                 </div>
-                {!ph.available && (
+                {!available && (
                   <div className="text-[9px] mt-0.5 text-muted-foreground/70">Coming soon</div>
                 )}
               </button>
@@ -253,7 +401,7 @@ export default function LessonTest() {
             Round <span className="text-foreground">{roundIndex + 1}</span> of {ROUNDS_PER_PHASE}
           </div>
           <div className="flex gap-1 flex-wrap">
-            {lesson.letterRounds.map((_, i) => {
+            {Array.from({ length: ROUNDS_PER_PHASE }).map((_, i) => {
               const completed = i < phaseDone;
               const isCurrent = i === roundIndex;
               const unlocked = i <= phaseDone;
@@ -293,10 +441,10 @@ export default function LessonTest() {
         {/* Live stats */}
         <div className="grid grid-cols-4 gap-2 mb-4">
           {[
-            { label: "Letters", value: `${charIndex}/${target.length}`, color: "text-primary" },
-            { label: "WPM",     value: liveStats.wpm,                  color: "text-accent" },
-            { label: "Accuracy",value: `${liveStats.accuracy}%`,        color: liveStats.accuracy >= 90 ? "text-green-400" : liveStats.accuracy >= 70 ? "text-yellow-400" : "text-red-400" },
-            { label: "Errors",  value: errors,                          color: errors === 0 ? "text-muted-foreground" : "text-red-400" },
+            { label: progressLabelTitle, value: progressLabel, color: "text-primary" },
+            { label: "WPM",      value: liveStats.wpm,                          color: "text-accent" },
+            { label: "Accuracy", value: `${liveStats.accuracy}%`,                color: liveStats.accuracy >= 90 ? "text-green-400" : liveStats.accuracy >= 70 ? "text-yellow-400" : "text-red-400" },
+            { label: "Errors",   value: errors,                                  color: errors === 0 ? "text-muted-foreground" : "text-red-400" },
           ].map((s) => (
             <div key={s.label} className="rounded-xl bg-card border border-border/60 p-2.5 sm:p-3 text-center">
               <div className="text-[10px] sm:text-xs text-muted-foreground mb-0.5">{s.label}</div>
@@ -305,7 +453,7 @@ export default function LessonTest() {
           ))}
         </div>
 
-        {/* Main practice card — Letter phase */}
+        {/* Main practice card */}
         <motion.div
           ref={liveRef}
           tabIndex={0}
@@ -319,71 +467,46 @@ export default function LessonTest() {
           }`}
           onClick={() => liveRef.current?.focus()}
         >
-          {/* Sequence preview */}
-          <div className="flex items-center justify-center gap-1 sm:gap-1.5 flex-wrap mb-6 min-h-[60px]">
-            {target.split("").map((ch, i) => {
-              const typed = i < charIndex;
-              const isCurrent = i === charIndex;
-              return (
-                <span
-                  key={i}
-                  className={`font-mono font-black text-2xl sm:text-3xl w-8 sm:w-10 text-center transition-all duration-100 ${
-                    typed
-                      ? "text-green-400"
-                      : isCurrent
-                      ? "text-foreground"
-                      : "text-muted-foreground/35"
-                  } ${isCurrent ? "border-b-2 border-primary" : ""}`}
-                >
-                  {ch}
-                </span>
-              );
-            })}
-          </div>
-
-          {/* Big current key */}
-          <div className="flex flex-col items-center justify-center min-h-[180px] gap-3">
-            {roundResult ? (
-              <RoundComplete
-                stats={roundResult}
-                color={lesson.color}
-                isLastRound={isLastRound}
-                onRetry={resetRound}
-                onNext={() => {
-                  if (isLastRound) return;
-                  setRoundIndex((r) => Math.min(r + 1, ROUNDS_PER_PHASE - 1));
-                }}
-              />
-            ) : (
-              <>
-                <div className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
-                  Press this key
-                </div>
-                <motion.div
-                  key={charIndex}
-                  initial={{ scale: 0.85, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                  className={`font-mono font-black text-7xl sm:text-8xl select-none ${
-                    flash === "wrong" ? "text-red-400" : flash === "correct" ? "text-green-400" : "text-foreground"
-                  }`}
-                  data-testid="current-letter"
-                >
-                  {currentChar === " " ? "␣" : currentChar}
-                </motion.div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {startedAt === null
-                    ? "Type the letter above to begin"
-                    : "Keep going — only the correct key advances"}
-                </div>
-              </>
-            )}
-          </div>
+          {phase === "letter" ? (
+            <LetterPhaseContent
+              target={letterTarget}
+              charIndex={charIndex}
+              currentChar={currentLetter}
+              flash={flash}
+              startedAt={startedAt}
+              roundResult={roundResult}
+              color={lesson.color}
+              isLastRound={isLastRound}
+              onRetry={resetRound}
+              onNext={() => {
+                if (isLastRound) return;
+                setRoundIndex((r) => Math.min(r + 1, ROUNDS_PER_PHASE - 1));
+              }}
+              totalTargetChars={totalTargetChars}
+            />
+          ) : (
+            <WordPhaseContent
+              words={wordTarget}
+              wordIdx={wordIdx}
+              wordInput={wordInput}
+              currentWord={currentWord}
+              flash={flash}
+              startedAt={startedAt}
+              roundResult={roundResult}
+              color={lesson.color}
+              isLastRound={isLastRound}
+              onRetry={resetRound}
+              onNext={() => {
+                if (isLastRound) return;
+                setRoundIndex((r) => Math.min(r + 1, ROUNDS_PER_PHASE - 1));
+              }}
+            />
+          )}
         </motion.div>
 
         {/* Keyboard visualizer with focus key */}
         <div className="mb-4">
-          <KeyboardVisualizer highlightKey={currentChar?.toLowerCase()} />
+          <KeyboardVisualizer highlightKey={highlightKey} />
           <p className="text-center text-[11px] text-muted-foreground mt-2">
             Practicing: <span className="font-mono font-bold text-foreground">{lesson.rowKeys}</span>
           </p>
@@ -399,25 +522,233 @@ export default function LessonTest() {
               className="rounded-2xl bg-gradient-to-br from-green-500/15 to-emerald-500/10 border border-green-500/30 p-5 text-center mb-4"
             >
               <Trophy className="w-8 h-8 text-green-400 mx-auto mb-2" />
-              <div className="text-lg font-black mb-1">Letter Phase Complete!</div>
+              <div className="text-lg font-black mb-1">{PHASE_LABEL[phase]} Phase Complete!</div>
               <p className="text-sm text-muted-foreground mb-4">
-                All 10 letter rounds done. Word and Paragraph phases are coming soon.
+                {phase === "letter"
+                  ? "All 10 letter rounds done. Try the Word phase next!"
+                  : "All 10 word rounds done. Paragraph phase coming soon."}
               </p>
               <div className="flex gap-2 justify-center flex-wrap">
                 <Button variant="outline" onClick={() => setRoundIndex(0)} className="gap-1.5">
                   <RefreshCw className="w-4 h-4" /> Replay Phase
                 </Button>
-                <Link href="/lessons">
-                  <Button className={`bg-gradient-to-r ${lesson.color} text-white gap-1.5`}>
-                    <ChevronRight className="w-4 h-4" /> Back to Lessons
+                {phase === "letter" && ENABLED_PHASES.includes("word") ? (
+                  <Button
+                    onClick={() => setPhase("word")}
+                    className={`bg-gradient-to-r ${lesson.color} text-white gap-1.5`}
+                    data-testid="goto-word-phase"
+                  >
+                    <ChevronRight className="w-4 h-4" /> Start Word Phase
                   </Button>
-                </Link>
+                ) : (
+                  <Link href="/lessons">
+                    <Button className={`bg-gradient-to-r ${lesson.color} text-white gap-1.5`}>
+                      <ChevronRight className="w-4 h-4" /> Back to Lessons
+                    </Button>
+                  </Link>
+                )}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+// ── Letter phase practice card content ─────────────────────────
+function LetterPhaseContent({
+  target, charIndex, currentChar, flash, startedAt, roundResult,
+  color, isLastRound, onRetry, onNext,
+}: {
+  target: string;
+  charIndex: number;
+  currentChar: string;
+  flash: "correct" | "wrong" | null;
+  startedAt: number | null;
+  roundResult: RoundStats | null;
+  color: string;
+  isLastRound: boolean;
+  onRetry: () => void;
+  onNext: () => void;
+  totalTargetChars: number;
+}) {
+  return (
+    <>
+      <div className="flex items-center justify-center gap-1 sm:gap-1.5 flex-wrap mb-6 min-h-[60px]">
+        {target.split("").map((ch, i) => {
+          const typed = i < charIndex;
+          const isCurrent = i === charIndex;
+          return (
+            <span
+              key={i}
+              className={`font-mono font-black text-2xl sm:text-3xl w-8 sm:w-10 text-center transition-all duration-100 ${
+                typed
+                  ? "text-green-400"
+                  : isCurrent
+                  ? "text-foreground"
+                  : "text-muted-foreground/35"
+              } ${isCurrent ? "border-b-2 border-primary" : ""}`}
+            >
+              {ch}
+            </span>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-col items-center justify-center min-h-[180px] gap-3">
+        {roundResult ? (
+          <RoundComplete
+            stats={roundResult}
+            color={color}
+            isLastRound={isLastRound}
+            onRetry={onRetry}
+            onNext={onNext}
+          />
+        ) : (
+          <>
+            <div className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
+              Press this key
+            </div>
+            <motion.div
+              key={charIndex}
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 300 }}
+              className={`font-mono font-black text-7xl sm:text-8xl select-none ${
+                flash === "wrong" ? "text-red-400" : flash === "correct" ? "text-green-400" : "text-foreground"
+              }`}
+              data-testid="current-letter"
+            >
+              {currentChar === " " ? "␣" : currentChar}
+            </motion.div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {startedAt === null
+                ? "Type the letter above to begin"
+                : "Keep going — only the correct key advances"}
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ── Word phase practice card content ───────────────────────────
+function WordPhaseContent({
+  words, wordIdx, wordInput, currentWord, flash, startedAt, roundResult,
+  color, isLastRound, onRetry, onNext,
+}: {
+  words: string[];
+  wordIdx: number;
+  wordInput: string;
+  currentWord: string;
+  flash: "correct" | "wrong" | null;
+  startedAt: number | null;
+  roundResult: RoundStats | null;
+  color: string;
+  isLastRound: boolean;
+  onRetry: () => void;
+  onNext: () => void;
+}) {
+  return (
+    <>
+      {/* Words row preview */}
+      <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap mb-5 min-h-[40px]">
+        {words.map((w, i) => {
+          const done = i < wordIdx;
+          const isCurrent = i === wordIdx;
+          if (isCurrent) {
+            return (
+              <span
+                key={i}
+                className="font-mono font-black text-base sm:text-lg border-b-2 border-primary px-1"
+                data-testid="current-word-preview"
+              >
+                {w.split("").map((ch, ci) => {
+                  const typedCh = wordInput[ci];
+                  let cls = "text-muted-foreground/60";
+                  if (typedCh !== undefined) {
+                    cls = typedCh === ch ? "text-green-400" : "text-red-400 underline";
+                  }
+                  return <span key={ci} className={cls}>{ch}</span>;
+                })}
+                {/* overflow chars (user typed extra) */}
+                {wordInput.length > w.length && (
+                  <span className="text-red-400 underline">
+                    {wordInput.slice(w.length)}
+                  </span>
+                )}
+              </span>
+            );
+          }
+          return (
+            <span
+              key={i}
+              className={`font-mono font-bold text-base sm:text-lg ${
+                done ? "text-green-400/70 line-through" : "text-muted-foreground/40"
+              }`}
+            >
+              {w}
+            </span>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-col items-center justify-center min-h-[180px] gap-3">
+        {roundResult ? (
+          <RoundComplete
+            stats={roundResult}
+            color={color}
+            isLastRound={isLastRound}
+            onRetry={onRetry}
+            onNext={onNext}
+          />
+        ) : (
+          <>
+            <div className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
+              Type this word
+            </div>
+            <motion.div
+              key={wordIdx}
+              initial={{ scale: 0.92, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 300 }}
+              className="font-mono font-black text-5xl sm:text-6xl select-none flex"
+              data-testid="current-word"
+            >
+              {currentWord.split("").map((ch, ci) => {
+                const typedCh = wordInput[ci];
+                let cls = "text-foreground/80";
+                if (typedCh !== undefined) {
+                  cls = typedCh === ch ? "text-green-400" : "text-red-400";
+                } else if (ci === wordInput.length) {
+                  cls = `text-foreground ${flash === "wrong" ? "text-red-400" : ""}`;
+                }
+                return (
+                  <span
+                    key={ci}
+                    className={`${cls} ${ci === wordInput.length ? "border-b-4 border-primary" : ""}`}
+                  >
+                    {ch}
+                  </span>
+                );
+              })}
+              {wordInput.length > currentWord.length && (
+                <span className="text-red-400 underline">
+                  {wordInput.slice(currentWord.length)}
+                </span>
+              )}
+            </motion.div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {startedAt === null
+                ? "Start typing the word above. Press space to submit."
+                : "Press space (or Enter) to submit — Backspace fixes mistakes"}
+            </div>
+          </>
+        )}
+      </div>
+    </>
   );
 }
 

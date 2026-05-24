@@ -12,14 +12,15 @@ export interface RowLesson {
   tip: string;
   xpPerRound: number;
   letterRounds: string[];
+  wordRounds: string[][];
 }
 
 export const ROUNDS_PER_PHASE = 10;
 export const PHASES_PER_LESSON = 3;
 export const ROUNDS_PER_LESSON = ROUNDS_PER_PHASE * PHASES_PER_LESSON;
-// Phases currently available to the user. Word & Paragraph come in follow-ups.
+// Phases currently available to the user. Paragraph comes in a follow-up.
 // Unlock math is based ONLY on enabled phases so the gating stays achievable.
-export const ENABLED_PHASES: PhaseId[] = ["letter"];
+export const ENABLED_PHASES: PhaseId[] = ["letter", "word"];
 const ENABLED_ROUNDS = ENABLED_PHASES.length * ROUNDS_PER_PHASE;
 export const UNLOCK_THRESHOLD = Math.ceil(ENABLED_ROUNDS * 0.8);
 
@@ -47,6 +48,18 @@ export const ROW_LESSONS: RowLesson[] = [
       "fjfjfjfjfj",
       "asdfjkl;as",
     ],
+    wordRounds: [
+      ["as", "ad", "al", "la", "ah", "ha"],
+      ["sad", "had", "lad", "ash", "gas", "has"],
+      ["dash", "gash", "lash", "hash", "gala", "flag"],
+      ["flash", "clash", "slash", "glass", "flask"],
+      ["flasks", "classy", "glassy"],
+      ["as", "had", "sad", "lad", "ash", "al"],
+      ["sad", "dash", "had", "lash", "gash"],
+      ["dash", "flash", "lash", "clash"],
+      ["flash", "classy", "slash", "glass"],
+      ["as", "sad", "dash", "flash", "classy", "glass"],
+    ],
   },
   {
     id: 2,
@@ -70,6 +83,18 @@ export const ROW_LESSONS: RowLesson[] = [
       "qwqwqwqwqw",
       "rtyurtyuoi",
       "qwertyuiop",
+    ],
+    wordRounds: [
+      ["we", "it", "up", "or", "to", "ye"],
+      ["you", "our", "two", "tip", "top", "pet"],
+      ["your", "type", "pipe", "poet", "tour", "riot"],
+      ["power", "tower", "write", "wrote", "quiet"],
+      ["poetry", "report", "pretty"],
+      ["we", "you", "it", "up", "or"],
+      ["you", "type", "your", "pipe", "top"],
+      ["type", "your", "power", "tower"],
+      ["power", "tower", "poetry", "report"],
+      ["we", "you", "type", "power", "poetry"],
     ],
   },
   {
@@ -95,6 +120,18 @@ export const ROW_LESSONS: RowLesson[] = [
       "vbnmvbnmvb",
       "zxcvbnm,./",
     ],
+    wordRounds: [
+      ["an", "am", "no", "on", "in"],
+      ["can", "van", "man", "ban", "men"],
+      ["name", "came", "bank", "mean", "zinc"],
+      ["cabin", "venom", "mince", "brain", "manic"],
+      ["venoms", "cabins", "vacant"],
+      ["an", "am", "can", "van", "men"],
+      ["can", "van", "name", "bank", "mean"],
+      ["name", "came", "venom", "cabin"],
+      ["venom", "cabin", "vacant", "venoms"],
+      ["can", "van", "name", "venom", "vacant"],
+    ],
   },
   {
     id: 4,
@@ -118,6 +155,18 @@ export const ROW_LESSONS: RowLesson[] = [
       "8888888888",
       "9999999999",
       "1234567890",
+    ],
+    wordRounds: [
+      ["1", "1", "1", "1", "2", "2", "2", "2", "3", "3", "3", "3"],
+      ["12", "23", "34", "45", "56", "67", "78", "89", "90"],
+      ["123", "456", "789", "100", "200", "300"],
+      ["1234", "5678", "9012", "3456"],
+      ["12345", "67890", "11111", "22222"],
+      ["12", "345", "6789", "10"],
+      ["100", "200", "55", "77", "99"],
+      ["1234", "567", "89", "0"],
+      ["9", "87", "654", "3210"],
+      ["11", "22", "333", "4444", "55555", "67890"],
     ],
   },
 ];

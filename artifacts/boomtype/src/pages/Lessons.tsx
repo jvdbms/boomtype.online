@@ -13,6 +13,7 @@ import {
   isLessonUnlocked,
   isLessonComplete,
   lessonRoundsCompleted,
+  enabledRoundsCompleted,
   type LessonProgressMap,
 } from "@/lib/lessonContent";
 
@@ -120,7 +121,7 @@ export default function Lessons() {
             const complete = isLessonComplete(p);
             const unlocked = isLessonUnlocked(lesson.id, progress);
             const pct = (done / ROUNDS_PER_LESSON) * 100;
-            const prevNeeded = lesson.id > 1 ? UNLOCK_THRESHOLD - lessonRoundsCompleted(progress[lesson.id - 1] || { letter: 0, word: 0, paragraph: 0 }) : 0;
+            const prevNeeded = lesson.id > 1 ? UNLOCK_THRESHOLD - enabledRoundsCompleted(progress[lesson.id - 1] || { letter: 0, word: 0, paragraph: 0 }) : 0;
 
             return (
               <motion.div
