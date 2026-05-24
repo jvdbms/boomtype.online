@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { WORD_LIST, LESSON_WORDS } from "@/lib/words";
 import { useGameSounds } from "@/hooks/useGameSounds";
 import { addGameXP, awardGameBadge, calculateGameXP } from "@/lib/storage";
+import XpRewardLine from "@/components/XpRewardLine";
+import BadgeUnlockLine from "@/components/BadgeUnlockLine";
 
 const HS_KEY = "boomtype_cloudrace_hs";
 const RACE_DISTANCE = 100;
@@ -241,14 +243,12 @@ export default function CloudRace() {
                 const xp = result === "win"
                   ? calculateGameXP("cloud-race", wordsTyped)
                   : calculateGameXP("cloud-race", Math.floor(wordsTyped / 2));
-                return xp > 0 ? (
-                  <p className="text-yellow-400 font-bold mb-1 text-sm flex items-center justify-center gap-1">
-                    ⚡ +{xp} XP earned
-                  </p>
-                ) : null;
+                return xp > 0 ? <XpRewardLine xp={xp} /> : null;
               })()}
               {result === "win" && (
-                <p className="text-sky-400 font-bold mb-4 text-sm">☁️ Cloud Racer badge unlocked!</p>
+                <BadgeUnlockLine className="text-sky-400 font-bold mb-4 text-sm" glowColor="rgba(56, 189, 248, 0.7)">
+                  ☁️ Cloud Racer badge unlocked!
+                </BadgeUnlockLine>
               )}
               <div className="flex gap-3">
                 <Button onClick={startRace} className="flex-1 bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold gap-1.5">

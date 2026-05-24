@@ -3,6 +3,8 @@ import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, RefreshCw, Zap, Trophy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import XpRewardLine from "@/components/XpRewardLine";
+import BadgeUnlockLine from "@/components/BadgeUnlockLine";
 import { WORD_LIST } from "@/lib/words";
 import { useGameSounds } from "@/hooks/useGameSounds";
 import { getNickname, setNickname, addGameXP, awardGameBadge, calculateGameXP } from "@/lib/storage";
@@ -268,12 +270,12 @@ export default function SpeedBurst() {
                 <h2 className="text-2xl font-black mb-1">Time's Up!</h2>
                 <p className="text-4xl font-black text-purple-400 mb-1">{finalScore} pts</p>
                 {finalScore > 0 && (
-                  <p className="text-yellow-400 font-bold mb-1 text-sm flex items-center justify-center gap-1">
-                    ⚡ +{calculateGameXP("speed-burst", finalScore)} XP earned
-                  </p>
+                  <XpRewardLine xp={calculateGameXP("speed-burst", finalScore)} />
                 )}
                 {finalScore >= 50 && (
-                  <p className="text-purple-400 font-bold mb-1 text-sm">⚡ Speed Freak badge unlocked!</p>
+                  <BadgeUnlockLine className="text-purple-400 font-bold mb-1 text-sm" glowColor="rgba(168, 85, 247, 0.7)">
+                    ⚡ Speed Freak badge unlocked!
+                  </BadgeUnlockLine>
                 )}
                 {newHighScore && finalScore > 0 && (
                   <p className="text-yellow-400 font-bold mb-2 text-sm">🏆 New High Score!</p>

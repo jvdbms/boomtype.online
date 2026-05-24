@@ -5,6 +5,8 @@ import { ArrowLeft, Trophy, RefreshCw, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useGameSounds } from "@/hooks/useGameSounds";
 import { addGameXP, awardGameBadge, calculateGameXP } from "@/lib/storage";
+import XpRewardLine from "@/components/XpRewardLine";
+import BadgeUnlockLine from "@/components/BadgeUnlockLine";
 
 const HS_KEY = "boomtype_alphabetrace_hs";
 const MODES = [
@@ -158,11 +160,11 @@ export default function AlphabetRace() {
                   <p className="text-muted-foreground text-sm mb-1">Best: <span className="text-yellow-400 font-bold">{bestTimes[mode.id].toFixed(2)}s</span></p>
                 )}
                 <p className="text-muted-foreground text-sm mb-2">Mistakes: {mistakes}</p>
-                <p className="text-yellow-400 font-bold mb-1 text-sm flex items-center justify-center gap-1">
-                  ⚡ +{calculateGameXP("alphabet-race", 1)} XP earned
-                </p>
+                <XpRewardLine xp={calculateGameXP("alphabet-race", 1)} />
                 {mode.id === "az" && lastTime < 8 && (
-                  <p className="text-yellow-400 font-bold text-sm">🔤 Alphabet Ace badge unlocked!</p>
+                  <BadgeUnlockLine className="text-yellow-400 font-bold text-sm" glowColor="rgba(250, 204, 21, 0.7)">
+                    🔤 Alphabet Ace badge unlocked!
+                  </BadgeUnlockLine>
                 )}
               </motion.div>
             )}

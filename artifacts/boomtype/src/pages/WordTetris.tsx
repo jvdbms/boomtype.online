@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { WORD_LIST, LESSON_WORDS } from "@/lib/words";
 import { useGameSounds } from "@/hooks/useGameSounds";
 import { addGameXP, awardGameBadge, calculateGameXP } from "@/lib/storage";
+import XpRewardLine from "@/components/XpRewardLine";
+import BadgeUnlockLine from "@/components/BadgeUnlockLine";
 
 const HS_KEY = "boomtype_wordtetris_hs";
 const GRID_COLS = 8;
@@ -214,12 +216,12 @@ export default function WordTetris() {
               <div className="text-5xl font-black text-primary mb-1">{score}</div>
               <div className="text-muted-foreground text-sm mb-2">points — {lines} lines</div>
               {score > 0 && (
-                <p className="text-yellow-400 font-bold mb-1 text-sm flex items-center justify-center gap-1">
-                  ⚡ +{calculateGameXP("word-tetris", score)} XP earned
-                </p>
+                <XpRewardLine xp={calculateGameXP("word-tetris", score)} />
               )}
               {lines >= 20 && (
-                <p className="text-orange-400 font-bold mb-2 text-sm">🧱 Tetris Master badge unlocked!</p>
+                <BadgeUnlockLine className="text-orange-400 font-bold mb-2 text-sm" glowColor="rgba(251, 146, 60, 0.7)">
+                  🧱 Tetris Master badge unlocked!
+                </BadgeUnlockLine>
               )}
               {score >= highScore && score > 0 && <p className="text-yellow-400 font-bold text-sm mb-4">🏆 New High Score!</p>}
               <div className="flex gap-3">

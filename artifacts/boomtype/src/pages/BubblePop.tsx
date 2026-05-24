@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { WORD_LIST, LESSON_WORDS } from "@/lib/words";
 import { useGameSounds } from "@/hooks/useGameSounds";
 import { addGameXP, awardGameBadge, calculateGameXP } from "@/lib/storage";
+import XpRewardLine from "@/components/XpRewardLine";
+import BadgeUnlockLine from "@/components/BadgeUnlockLine";
 
 const HS_KEY = "boomtype_bubblepop_hs";
 const BUBBLE_COLORS = [
@@ -217,12 +219,12 @@ export default function BubblePop() {
               <div className="text-5xl font-black text-primary mb-1">{score}</div>
               <div className="text-muted-foreground text-sm mb-3">points</div>
               {score > 0 && (
-                <p className="text-yellow-400 font-bold mb-1 text-sm flex items-center justify-center gap-1">
-                  ⚡ +{calculateGameXP("bubble-pop", score)} XP earned
-                </p>
+                <XpRewardLine xp={calculateGameXP("bubble-pop", score)} />
               )}
               {score >= 100 && (
-                <p className="text-cyan-400 font-bold mb-4 text-sm">🫧 Bubble Master badge unlocked!</p>
+                <BadgeUnlockLine className="text-cyan-400 font-bold mb-4 text-sm" glowColor="rgba(34, 211, 238, 0.7)">
+                  🫧 Bubble Master badge unlocked!
+                </BadgeUnlockLine>
               )}
               <div className="flex gap-3">
                 <Button onClick={startGame} className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold gap-1.5">

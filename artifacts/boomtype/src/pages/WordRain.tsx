@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { WORD_LIST } from "@/lib/words";
 import { useGameSounds } from "@/hooks/useGameSounds";
 import { getNickname, setNickname, addGameXP, awardGameBadge, calculateGameXP } from "@/lib/storage";
+import XpRewardLine from "@/components/XpRewardLine";
+import BadgeUnlockLine from "@/components/BadgeUnlockLine";
 import { useSubmitGameScore } from "@workspace/api-client-react";
 
 const HIGH_SCORE_KEY = "boomtype_wordrain_hs";
@@ -289,12 +291,12 @@ export default function WordRain() {
                 <p className="text-muted-foreground mb-2">You reached Wave {wave}</p>
                 <p className="text-4xl font-black text-primary mb-1">{finalScoreRef.current} words</p>
                 {finalScoreRef.current > 0 && (
-                  <p className="text-yellow-400 font-bold mb-1 text-sm flex items-center justify-center gap-1">
-                    ⚡ +{calculateGameXP("word-rain", finalScoreRef.current)} XP earned
-                  </p>
+                  <XpRewardLine xp={calculateGameXP("word-rain", finalScoreRef.current)} />
                 )}
                 {finalScoreRef.current >= 30 && (
-                  <p className="text-blue-400 font-bold mb-1 text-sm">🌧️ Word Warden badge unlocked!</p>
+                  <BadgeUnlockLine className="text-blue-400 font-bold mb-1 text-sm" glowColor="rgba(96, 165, 250, 0.7)">
+                    🌧️ Word Warden badge unlocked!
+                  </BadgeUnlockLine>
                 )}
                 {newHighScore && finalScoreRef.current > 0 && (
                   <p className="text-yellow-400 font-bold mb-2 text-sm">🏆 New High Score!</p>

@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { WORD_LIST } from "@/lib/words";
 import { useGameSounds } from "@/hooks/useGameSounds";
 import { getNickname, setNickname, addGameXP, awardGameBadge, calculateGameXP } from "@/lib/storage";
+import XpRewardLine from "@/components/XpRewardLine";
+import BadgeUnlockLine from "@/components/BadgeUnlockLine";
 import { useSubmitGameScore } from "@workspace/api-client-react";
 
 const HIGH_SCORE_KEY = "boomtype_zombie_hs";
@@ -310,12 +312,12 @@ export default function ZombieAttack() {
                 <h2 className="text-2xl font-black mb-1">You Survived Until Wave {wave}</h2>
                 <p className="text-4xl font-black text-red-400 mb-1">{finalScoreRef.current} kills</p>
                 {finalScoreRef.current > 0 && (
-                  <p className="text-yellow-400 font-bold mb-1 text-sm flex items-center justify-center gap-1">
-                    ⚡ +{calculateGameXP("zombie-attack", finalScoreRef.current)} XP earned
-                  </p>
+                  <XpRewardLine xp={calculateGameXP("zombie-attack", finalScoreRef.current)} />
                 )}
                 {finalScoreRef.current >= 50 && (
-                  <p className="text-red-400 font-bold mb-1 text-sm">🧟 Zombie Slayer badge unlocked!</p>
+                  <BadgeUnlockLine className="text-red-400 font-bold mb-1 text-sm" glowColor="rgba(248, 113, 113, 0.7)">
+                    🧟 Zombie Slayer badge unlocked!
+                  </BadgeUnlockLine>
                 )}
                 {newHighScore && finalScoreRef.current > 0 && (
                   <p className="text-yellow-400 font-bold mb-2 text-sm">🏆 New High Score!</p>
