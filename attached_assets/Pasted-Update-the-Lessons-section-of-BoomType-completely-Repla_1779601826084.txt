@@ -1,0 +1,143 @@
+Update the Lessons section of BoomType completely. 
+Replace the current limited practice with a full structured 
+lesson system as described below:
+
+═══════════════════════════════════════
+LESSON STRUCTURE — 4 KEYBOARD ROW LESSONS
+═══════════════════════════════════════
+
+Build 4 main lessons:
+  Lesson 1 → Home Row Keys     (a s d f g h j k l ;)
+  Lesson 2 → Upper Row Keys    (q w e r t y u i o p)
+  Lesson 3 → Lower Row Keys    (z x c v b n m , . /)
+  Lesson 4 → Number Row Keys   (1 2 3 4 5 6 7 8 9 0)
+
+═══════════════════════════════════════
+EACH LESSON HAS 3 PHASES IN THIS ORDER
+═══════════════════════════════════════
+
+──────────────────────────────────────
+PHASE 1 — LETTER BY LETTER (10 rounds)
+──────────────────────────────────────
+Show one key at a time on screen in large font.
+User must press the correct key to move to next.
+Wrong key = red flash + stay on same letter.
+Correct key = green flash + move to next letter.
+
+Round examples for Home Row:
+  Round 1:  a a a a a a a a a a
+  Round 2:  s s s s s s s s s s
+  Round 3:  d d d d d d d d d d
+  Round 4:  f f f f f f f f f f
+  Round 5:  j j j j j j j j j j
+  Round 6:  k k k k k k k k k k
+  Round 7:  l l l l l l l l l l
+  Round 8:  a s a s a s a s a s
+  Round 9:  f j f j f j f j f j
+  Round 10: a s d f j k l ; (all home row mixed)
+
+Apply same pattern for Upper Row, Lower Row, Number Row.
+
+──────────────────────────────────────
+PHASE 2 — WORD BY WORD (10 rounds)
+──────────────────────────────────────
+Show real words made ONLY from that row's keys.
+User types each word. Highlight correct=green wrong=red.
+Backspace must work to fix mistakes.
+Show WPM and accuracy live.
+
+Round examples for Home Row words:
+  Round 1:  (2-letter)  as  ad  al  la  as  has
+  Round 2:  (3-letter)  sad  had  lad  ash  gas
+  Round 3:  (4-letter)  dash  gash  lash  flask
+  Round 4:  (5-letter)  flash  clash  slash  glass
+  Round 5:  (6-letter)  flasks  classy  glassy
+  Round 6:  Mixed 2-3   as had sad lad ash al
+  Round 7:  Mixed 3-4   sad dash had lash gash
+  Round 8:  Mixed 4-5   dash flash lash clash
+  Round 9:  Mixed 5-6   flash classy slash glass
+  Round 10: Full mix    as sad dash flash classy glass
+
+Upper Row words:
+  (use words like: we you your pipe tower type port)
+
+Lower Row words:
+  (use words like: can van man ban zinc venom)
+
+Number Row:
+  Round 1:   1 1 1 1  2 2 2 2  3 3 3 3
+  Round 2:   12 23 34 45 56 67 78 89 90
+  Round 3:   123 456 789 100 200 300
+  Round 4:   1234 5678 9012 3456
+  Round 5:   12345 67890 11111 22222
+  Round 6:   Mixed: 12 345 6789 10
+  Round 7:   Mixed: 100 200 55 77 99
+  Round 8:   Mixed: 1234 567 89 0
+  Round 9:   Mixed: 9 87 654 3210
+  Round 10:  Full mix of all number patterns
+
+──────────────────────────────────────
+PHASE 3 — PARAGRAPH PRACTICE (10 rounds)
+──────────────────────────────────────
+Show a short paragraph (2-4 sentences).
+Words must be made mainly from that lesson's keys.
+User types the full paragraph.
+Show live WPM, accuracy, and errors.
+Each round gets slightly longer and harder.
+
+Home Row paragraphs (example):
+  Round 1: "A sad lad had a glass flask."
+  Round 2: "A sad lass had a flask. She has a flag."
+  Round 3: "A glad lad had a flask of gas. He dashed 
+             along the hall."
+  ...keep growing to 4-5 sentences by Round 10
+
+Upper Row paragraphs:
+  (sentences using: we, you, your, type, poor, 
+   tower, wrote, Europe, quiet, power)
+
+Lower Row paragraphs:
+  (sentences using: can, van, man, zinc, venom, 
+   combine, zonal, cabin)
+
+Number Row paragraphs:
+  Round 1:  "Type 123 then 456."
+  Round 2:  "She scored 100 out of 100 in 2024."
+  Round 3:  "The PIN is 4567. Call 0300-1234567."
+  ...up to full number-heavy sentences
+
+═══════════════════════════════════════
+PROGRESS & UI REQUIREMENTS
+═══════════════════════════════════════
+
+- Show lesson name at top: "Lesson 1 — Home Row"
+- Show phase tabs: [Letter] [Word] [Paragraph]
+- Show round progress bar: "Round 3 of 10"
+- After each round show: WPM, Accuracy, Errors
+- After all 10 rounds of a phase → unlock next phase
+- After all 3 phases → mark lesson as COMPLETE ✓
+- Lock next lesson until current lesson 80% complete
+- Show keyboard diagram at bottom highlighting 
+  which keys are being practiced in current round
+- Add a "Retry Round" and "Next Round" button 
+  after each round result
+- Save progress to localStorage so user 
+  can resume next time
+
+═══════════════════════════════════════
+DESIGN REQUIREMENTS
+═══════════════════════════════════════
+
+- Large font for practice text (minimum 24px)
+- Current character cursor must be clearly visible
+- Correct = bright green highlight
+- Wrong = red highlight + slight shake animation
+- Progress bar at top showing overall lesson progress
+- Clean card layout — white/dark card in center
+- Mobile responsive design
+- Smooth transition between rounds
+
+Do NOT change anything else in the app.
+Only update the Lessons section.
+Keep all existing pages (typing test, home, 
+blog, accounts) exactly as they are.
