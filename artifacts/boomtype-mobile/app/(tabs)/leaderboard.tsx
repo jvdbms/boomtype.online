@@ -1,5 +1,9 @@
 import { Feather } from "@expo/vector-icons";
-import { useGetLeaderboard } from "@workspace/api-client-react";
+import {
+  getGetMyLeaderboardRankQueryKey,
+  useGetLeaderboard,
+  useGetMyLeaderboardRank,
+} from "@workspace/api-client-react";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -39,6 +43,87 @@ export default function LeaderboardScreen() {
   const { data, isLoading, isError, refetch, isFetching } = useGetLeaderboard(
     { period, limit: 25 }
   );
+
+  const trimmedNickname = myNickname.trim();
+  const {
+    data: myRank,
+    refetch: refetchMyRank,
+  } = useGetMyLeaderboardRank(
+    { nickname: trimmedNickname, period },
+    {
+      query: {
+        enabled: trimmedNickname.length > 0,
+        queryKey: getGetMyLeaderboardRankQueryKey({
+          nickname: trimmedNickname,
+          period,
+        }),
+      },
+    }
+  );
+
+  const periodLabel = PERIODS.find((p) => p.value === period)?.label ?? "";
+
+  const handleRefresh = () => {
+    refetch();
+    if (trimmedNickname.length > 0) refetchMyRank();
+  };
+
+  const renderMyRankCard = () => {
+    if (trimmedNickname.length === 0) return null;
+    const hasScore = myRank?.bestWpm != null && myRank.rank != null;
+    return (
+      <View
+        style={[
+          styles.myCard,
+          {
+            backgroundColor: colors.card,
+            borderColor: hasScore ? colors.primary : colors.border,
+          },
+        ]}
+      >
+        <View style={styles.myCardHeader}>
+          <Text style={[styles.myCardTitle, { color: colors.mutedForeground }]}>
+            YOUR {periodLabel.toUpperCase()} STANDING
+          </Text>
+          <Text style={[styles.myCardName, { color: colors.foreground }]} numberOfLines={1}>
+            {trimmedNickname}
+          </Text>
+        </View>
+        {hasScore ? (
+          <View style={styles.myCardStats}>
+            <View style={styles.myStat}>
+              <Text style={[styles.myStatValue, { color: colors.primary }]}>
+                #{myRank!.rank}
+              </Text>
+              <Text style={[styles.myStatLabel, { color: colors.mutedForeground }]}>
+                {myRank!.totalPlayers > 0
+                  ? `of ${myRank!.totalPlayers}`
+                  : "RANK"}
+              </Text>
+            </View>
+            <View style={[styles.myDivider, { backgroundColor: colors.border }]} />
+            <View style={styles.myStat}>
+              <Text style={[styles.myStatValue, { color: colors.foreground }]}>
+                {Math.round(myRank!.bestWpm!)}
+              </Text>
+              <Text style={[styles.myStatLabel, { color: colors.mutedForeground }]}>
+                BEST WPM
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.myEmpty}>
+            <Feather name="zap" size={18} color={colors.mutedForeground} />
+            <Text style={[styles.myEmptyText, { color: colors.mutedForeground }]}>
+              {period === "all_time"
+                ? "Take a test to claim your spot on the board"
+                : `No scores ${period === "daily" ? "today" : "this week"} — run a test to get on the board`}
+            </Text>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -100,10 +185,11 @@ export default function LeaderboardScreen() {
           refreshControl={
             <RefreshControl
               refreshing={isFetching}
-              onRefresh={refetch}
+              onRefresh={handleRefresh}
               tintColor={colors.primary}
             />
           }
+          ListHeaderComponent={renderMyRankCard()}
           ListEmptyComponent={
             <View style={styles.centered}>
               <Feather name="list" size={40} color={colors.mutedForeground} />
@@ -237,6 +323,62 @@ const styles = StyleSheet.create({
   retryText: {
     fontSize: 14,
     fontWeight: "700",
+  },
+  myCard: {
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 12,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 12,
+  },
+  myCardHeader: {
+    gap: 2,
+  },
+  myCardTitle: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+  },
+  myCardName: {
+    fontSize: 16,
+    fontWeight: "700",
+    letterSpacing: -0.3,
+  },
+  myCardStats: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  myStat: {
+    flex: 1,
+    gap: 2,
+  },
+  myStatValue: {
+    fontSize: 24,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+  },
+  myStatLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+  },
+  myDivider: {
+    width: 1,
+    alignSelf: "stretch",
+  },
+  myEmpty: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  myEmptyText: {
+    fontSize: 13,
+    flex: 1,
+    lineHeight: 18,
   },
   row: {
     flexDirection: "row",

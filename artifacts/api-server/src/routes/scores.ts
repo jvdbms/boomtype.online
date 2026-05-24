@@ -5,6 +5,8 @@ import {
   SubmitScoreBody,
   GetLeaderboardQueryParams,
   GetLeaderboardResponse,
+  GetMyLeaderboardRankQueryParams,
+  GetMyLeaderboardRankResponse,
   GetStatsSummaryResponse,
   GetRecentActivityQueryParams,
   GetRecentActivityResponse,
@@ -86,6 +88,66 @@ router.get("/leaderboard", async (req, res): Promise<void> => {
   }));
 
   res.json(GetLeaderboardResponse.parse(leaderboard));
+});
+
+router.get("/leaderboard/me", async (req, res): Promise<void> => {
+  const parsed = GetMyLeaderboardRankQueryParams.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const { nickname, period } = parsed.data;
+  const normalizedNickname = nickname.trim();
+
+  let dateFilter: Date | undefined;
+  const now = new Date();
+  if (period === "daily") {
+    dateFilter = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  } else if (period === "weekly") {
+    dateFilter = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  }
+
+  const bestForUserQuery = db
+    .select({ best: max(scoresTable.wpm).as("best") })
+    .from(scoresTable)
+    .where(
+      dateFilter
+        ? sql`lower(${scoresTable.nickname}) = lower(${normalizedNickname}) and ${scoresTable.createdAt} >= ${dateFilter}`
+        : sql`lower(${scoresTable.nickname}) = lower(${normalizedNickname})`
+    );
+
+  const [userRow] = await bestForUserQuery;
+  const bestWpm = userRow?.best != null ? Number(userRow.best) : null;
+
+  const totalsQuery = db
+    .select({
+      nickname: scoresTable.nickname,
+      best: max(scoresTable.wpm).as("best"),
+    })
+    .from(scoresTable);
+
+  const grouped = await (dateFilter
+    ? totalsQuery.where(gte(scoresTable.createdAt, dateFilter))
+    : totalsQuery
+  ).groupBy(scoresTable.nickname);
+
+  const totalPlayers = grouped.length;
+  let rank: number | null = null;
+  if (bestWpm != null) {
+    const higher = grouped.filter((g) => Number(g.best) > bestWpm).length;
+    rank = higher + 1;
+  }
+
+  const payload = {
+    nickname: normalizedNickname,
+    period,
+    rank,
+    bestWpm,
+    totalPlayers,
+  };
+
+  res.json(GetMyLeaderboardRankResponse.parse(payload));
 });
 
 router.get("/stats/summary", async (_req, res): Promise<void> => {

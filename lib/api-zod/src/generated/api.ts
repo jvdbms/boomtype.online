@@ -49,6 +49,36 @@ export const GetLeaderboardResponseItem = zod.object({
 export const GetLeaderboardResponse = zod.array(GetLeaderboardResponseItem);
 
 /**
+ * @summary Get the current user's rank and best WPM for a period
+ */
+export const getMyLeaderboardRankQueryPeriodDefault = `all_time`;
+
+export const GetMyLeaderboardRankQueryParams = zod.object({
+  nickname: zod.coerce.string(),
+  period: zod
+    .enum(["daily", "weekly", "all_time"])
+    .default(getMyLeaderboardRankQueryPeriodDefault),
+});
+
+export const GetMyLeaderboardRankResponse = zod.object({
+  nickname: zod.string(),
+  period: zod.enum(["daily", "weekly", "all_time"]),
+  rank: zod
+    .number()
+    .nullable()
+    .describe("User's rank in this period. Null if no scores in this period."),
+  bestWpm: zod
+    .number()
+    .nullable()
+    .describe(
+      "User's best WPM in this period. Null if no scores in this period.",
+    ),
+  totalPlayers: zod
+    .number()
+    .describe("Total distinct players with scores in this period."),
+});
+
+/**
  * @summary Get platform-wide stats summary
  */
 export const GetStatsSummaryResponse = zod.object({

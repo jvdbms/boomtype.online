@@ -22,9 +22,11 @@ import type {
   GameScore,
   GetGameLeaderboardParams,
   GetLeaderboardParams,
+  GetMyLeaderboardRankParams,
   GetRecentActivityParams,
   HealthStatus,
   LeaderboardEntry,
+  MyLeaderboardRank,
   Score,
   StatsSummary,
   SubmitGameScoreBody,
@@ -288,6 +290,106 @@ export function useGetLeaderboard<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetLeaderboardQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get the current user's rank and best WPM for a period
+ */
+export const getGetMyLeaderboardRankUrl = (
+  params: GetMyLeaderboardRankParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/leaderboard/me?${stringifiedParams}`
+    : `/api/leaderboard/me`;
+};
+
+export const getMyLeaderboardRank = async (
+  params: GetMyLeaderboardRankParams,
+  options?: RequestInit,
+): Promise<MyLeaderboardRank> => {
+  return customFetch<MyLeaderboardRank>(getGetMyLeaderboardRankUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyLeaderboardRankQueryKey = (
+  params?: GetMyLeaderboardRankParams,
+) => {
+  return [`/api/leaderboard/me`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetMyLeaderboardRankQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyLeaderboardRank>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetMyLeaderboardRankParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMyLeaderboardRank>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetMyLeaderboardRankQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMyLeaderboardRank>>
+  > = ({ signal }) =>
+    getMyLeaderboardRank(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyLeaderboardRank>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyLeaderboardRankQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyLeaderboardRank>>
+>;
+export type GetMyLeaderboardRankQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the current user's rank and best WPM for a period
+ */
+
+export function useGetMyLeaderboardRank<
+  TData = Awaited<ReturnType<typeof getMyLeaderboardRank>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetMyLeaderboardRankParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMyLeaderboardRank>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyLeaderboardRankQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

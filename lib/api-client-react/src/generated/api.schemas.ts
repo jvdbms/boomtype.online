@@ -86,6 +86,26 @@ export interface GameLeaderboardEntry {
   score: number;
 }
 
+export type MyLeaderboardRankPeriod =
+  (typeof MyLeaderboardRankPeriod)[keyof typeof MyLeaderboardRankPeriod];
+
+export const MyLeaderboardRankPeriod = {
+  daily: "daily",
+  weekly: "weekly",
+  all_time: "all_time",
+} as const;
+
+export interface MyLeaderboardRank {
+  nickname: string;
+  period: MyLeaderboardRankPeriod;
+  /** User's rank in this period. Null if no scores in this period. */
+  rank: number | null;
+  /** User's best WPM in this period. Null if no scores in this period. */
+  bestWpm: number | null;
+  /** Total distinct players with scores in this period. */
+  totalPlayers: number;
+}
+
 export interface ErrorResponse {
   error: string;
 }
@@ -99,6 +119,20 @@ export type GetLeaderboardPeriod =
   (typeof GetLeaderboardPeriod)[keyof typeof GetLeaderboardPeriod];
 
 export const GetLeaderboardPeriod = {
+  daily: "daily",
+  weekly: "weekly",
+  all_time: "all_time",
+} as const;
+
+export type GetMyLeaderboardRankParams = {
+  nickname: string;
+  period?: GetMyLeaderboardRankPeriod;
+};
+
+export type GetMyLeaderboardRankPeriod =
+  (typeof GetMyLeaderboardRankPeriod)[keyof typeof GetMyLeaderboardRankPeriod];
+
+export const GetMyLeaderboardRankPeriod = {
   daily: "daily",
   weekly: "weekly",
   all_time: "all_time",

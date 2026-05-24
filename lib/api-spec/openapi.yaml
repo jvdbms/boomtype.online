@@ -78,6 +78,31 @@ paths:
                 items:
                   $ref: "#/components/schemas/LeaderboardEntry"
 
+  /leaderboard/me:
+    get:
+      operationId: getMyLeaderboardRank
+      tags: [leaderboard]
+      summary: Get the current user's rank and best WPM for a period
+      parameters:
+        - name: nickname
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [daily, weekly, all_time]
+            default: all_time
+      responses:
+        "200":
+          description: User's rank info for the period
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyLeaderboardRank"
+
   /stats/summary:
     get:
       operationId: getStatsSummary
@@ -365,6 +390,32 @@ components:
         - rank
         - nickname
         - score
+
+    MyLeaderboardRank:
+      type: object
+      properties:
+        nickname:
+          type: string
+        period:
+          type: string
+          enum: [daily, weekly, all_time]
+        rank:
+          type: integer
+          nullable: true
+          description: User's rank in this period. Null if no scores in this period.
+        bestWpm:
+          type: number
+          nullable: true
+          description: User's best WPM in this period. Null if no scores in this period.
+        totalPlayers:
+          type: integer
+          description: Total distinct players with scores in this period.
+      required:
+        - nickname
+        - period
+        - rank
+        - bestWpm
+        - totalPlayers
 
     ErrorResponse:
       type: object
