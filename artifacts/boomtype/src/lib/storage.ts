@@ -12,6 +12,7 @@ const STORAGE_KEYS = {
   LB_SUBMIT_COUNT:    "boomtype_lb_submit_count",
   GAME_BADGES:        "boomtype_game_badges",
   TYPING_BADGES:      "boomtype_typing_badges",
+  BALANCED_BADGES:    "boomtype_balanced_badges",
   GAME_XP:            "boomtype_game_xp",
 };
 
@@ -507,6 +508,73 @@ export function evaluateTypingBadges(): string[] {
     if (meets && awardTypingBadge(def.id)) newlyAwarded.push(def.id);
   }
   return newlyAwarded;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Balanced Player Badges (Typing XP + Game XP both crossed)
+// ─────────────────────────────────────────────────────────────
+
+export interface BalancedBadgeDef {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  threshold: number; // each of Typing XP and Game XP must meet/exceed this
+}
+
+export const BALANCED_BADGE_DEFS: Record<string, BalancedBadgeDef> = {
+  "balanced-500": {
+    id: "balanced-500",
+    name: "Balanced Typist",
+    description: "Earn 500 Typing XP AND 500 Game XP",
+    icon: "⚖️",
+    color: "text-teal-400",
+    threshold: 500,
+  },
+  "balanced-2000": {
+    id: "balanced-2000",
+    name: "Dual Mastery",
+    description: "Earn 2,000 Typing XP AND 2,000 Game XP",
+    icon: "🏅",
+    color: "text-amber-400",
+    threshold: 2000,
+  },
+};
+
+export function getBalancedBadges(): string[] {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.BALANCED_BADGES) || "[]"); }
+  catch { return []; }
+}
+
+export function awardBalancedBadge(badgeId: string): boolean {
+  const badges = getBalancedBadges();
+  if (badges.includes(badgeId)) return false;
+  badges.push(badgeId);
+  localStorage.setItem(STORAGE_KEYS.BALANCED_BADGES, JSON.stringify(badges));
+  return true;
+}
+
+/**
+ * Evaluate balanced-player badges against the current Typing XP and Game XP
+ * totals. Returns the list of badge IDs newly awarded on this call.
+ */
+export function evaluateBalancedBadges(): string[] {
+  const typingXp = getTypingXP();
+  const gameXp   = getGameXP();
+  const min      = Math.min(typingXp, gameXp);
+
+  const newlyAwarded: string[] = [];
+  for (const def of Object.values(BALANCED_BADGE_DEFS)) {
+    if (min >= def.threshold && awardBalancedBadge(def.id)) {
+      newlyAwarded.push(def.id);
+    }
+  }
+  return newlyAwarded;
+}
+
+export function hasBalancedBadge(): boolean {
+  return getBalancedBadges().length > 0;
 }
 
 export function calculateGameXP(game: string, score: number): number {

@@ -7,7 +7,10 @@ import {
   Wrench, Layers, Timer, Wind, Lock, BookOpen, Download, LayoutDashboard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getTotalXP, getStreak, getHighScore } from "@/lib/storage";
+import {
+  getTotalXP, getStreak, getHighScore,
+  getBalancedBadges, evaluateBalancedBadges, BALANCED_BADGE_DEFS,
+} from "@/lib/storage";
 
 const COMPLETED_KEY = "boomtype_completed_lessons";
 function getCompleted(): number[] {
@@ -48,6 +51,7 @@ export default function Dashboard() {
   const [bestWpm, setBestWpm] = useState(0);
   const [completed, setCompleted] = useState<number[]>([]);
   const [gameScores, setGameScores] = useState<Record<string, number>>({});
+  const [balancedBadgeIds, setBalancedBadgeIds] = useState<string[]>([]);
 
   useEffect(() => {
     document.title = "Dashboard | BoomType";
@@ -61,7 +65,15 @@ export default function Dashboard() {
       if (v > 0) scores[g.id] = v;
     });
     setGameScores(scores);
+    // Backfill + read any earned balanced-player badges
+    evaluateBalancedBadges();
+    setBalancedBadgeIds(getBalancedBadges());
   }, []);
+
+  const earnedBalancedBadges = balancedBadgeIds
+    .map(id => BALANCED_BADGE_DEFS[id])
+    .filter(Boolean);
+  const topBalancedBadge = earnedBalancedBadges[earnedBalancedBadges.length - 1];
 
   const level = Math.floor(xp / 200) + 1;
   const levelNames = ["Beginner", "Novice", "Learner", "Practitioner", "Intermediate", "Advanced", "Expert", "Pro", "Master", "Legend"];
@@ -98,6 +110,33 @@ export default function Dashboard() {
           );
         })}
       </div>
+
+      {/* Balanced Player callout */}
+      {topBalancedBadge && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="rounded-2xl border border-teal-500/30 bg-gradient-to-br from-teal-500/10 via-card to-amber-500/10 p-4 mb-6 flex items-center gap-4"
+        >
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500/25 to-amber-500/25 border border-teal-500/30 flex items-center justify-center text-2xl shrink-0">
+            {topBalancedBadge.icon}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className={`text-sm font-black ${topBalancedBadge.color}`}>
+              {topBalancedBadge.name} unlocked
+            </div>
+            <div className="text-xs text-muted-foreground leading-tight">
+              You're crushing both typing tests and mini-games — keep the balance up!
+            </div>
+          </div>
+          {earnedBalancedBadges.length > 1 && (
+            <div className="hidden sm:flex items-center gap-1 text-[10px] font-bold text-muted-foreground bg-white/5 border border-border/40 rounded-full px-2 py-1">
+              +{earnedBalancedBadges.length - 1} more
+            </div>
+          )}
+        </motion.div>
+      )}
 
       {/* XP progress to next level */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}

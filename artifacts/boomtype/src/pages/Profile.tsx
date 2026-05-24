@@ -18,6 +18,7 @@ import {
   clearMistakeHeatmap, getGameBadges, GAME_BADGE_DEFS,
   getGameXP, getTypingXP, getTotalXP,
   TYPING_BADGE_DEFS, getTypingBadges, evaluateTypingBadges,
+  BALANCED_BADGE_DEFS, getBalancedBadges, evaluateBalancedBadges,
 } from "@/lib/storage";
 
 // ─── Types ────────────────────────────────────────────────────
@@ -129,6 +130,11 @@ export default function Profile() {
   const localTotalXP  = getTotalXP();
   const localGameXP   = getGameXP();
   const localTypingXP = getTypingXP();
+  // Backfill balanced badges from current XP totals.
+  evaluateBalancedBadges();
+  const balancedBadgeIds  = getBalancedBadges();
+  const balancedBadgeDefs = Object.values(BALANCED_BADGE_DEFS);
+  const earnedBalancedBadges = balancedBadgeDefs.filter(def => balancedBadgeIds.includes(def.id));
   const xpSplitTotal  = localTypingXP + localGameXP;
   const typingPct     = xpSplitTotal > 0 ? Math.round((localTypingXP / xpSplitTotal) * 100) : 0;
   const gamePct       = xpSplitTotal > 0 ? 100 - typingPct : 0;
@@ -330,6 +336,63 @@ export default function Profile() {
                         {def.description}
                       </div>
                     </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ── Balanced Player Badges ── */}
+          <div className="rounded-2xl bg-card border border-border/60 p-5 mb-6">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-base">⚖️</span>
+              <h2 className="font-bold text-sm">Balanced Player</h2>
+              <span className="ml-auto text-xs text-muted-foreground">
+                {earnedBalancedBadges.length} / {balancedBadgeDefs.length} earned
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">
+              Awarded when both Typing XP and Game XP cross the threshold.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {balancedBadgeDefs.map(def => {
+                const earned   = balancedBadgeIds.includes(def.id);
+                const minXp    = Math.min(localTypingXP, localGameXP);
+                const progress = Math.min(100, Math.round((minXp / def.threshold) * 100));
+                return (
+                  <div
+                    key={def.id}
+                    title={def.description}
+                    className={`rounded-xl border p-3 transition-all ${
+                      earned
+                        ? "bg-white/5 border-border/60"
+                        : "bg-black/20 border-border/30"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2 mb-2">
+                      <span className={`text-xl shrink-0 ${earned ? "" : "grayscale opacity-60"}`}>{def.icon}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className={`text-xs font-bold truncate ${earned ? def.color : "text-muted-foreground"}`}>
+                          {def.name}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                          {def.description}
+                        </div>
+                      </div>
+                    </div>
+                    {!earned && (
+                      <>
+                        <div className="h-1.5 bg-border/30 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-primary to-accent transition-all"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                        <div className="text-[10px] text-muted-foreground mt-1">
+                          {minXp.toLocaleString()} / {def.threshold.toLocaleString()} XP (lower of the two)
+                        </div>
+                      </>
+                    )}
                   </div>
                 );
               })}
