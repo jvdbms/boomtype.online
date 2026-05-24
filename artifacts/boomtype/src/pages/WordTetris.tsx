@@ -50,6 +50,7 @@ export default function WordTetris() {
   const [falling, setFalling] = useState<FallingWord | null>(null);
   const [stacked, setStacked] = useState<StackedWord[]>([]);
   const [input, setInput] = useState("");
+  const [badgeJustUnlocked, setBadgeJustUnlocked] = useState(false);
   const [score, setScore] = useState(0);
   const [lines, setLines] = useState(0);
   const [level, setLevel] = useState(1);
@@ -85,7 +86,7 @@ export default function WordTetris() {
       setHighScore(fs);
     }
     addGameXP(calculateGameXP("word-tetris", fs));
-    if (linesRef.current >= 20) awardGameBadge("tetris-master");
+    setBadgeJustUnlocked(linesRef.current >= 20 && awardGameBadge("tetris-master"));
   }, [playGameOver]);
 
   // Count occupied rows for a given cell
@@ -218,7 +219,7 @@ export default function WordTetris() {
               {score > 0 && (
                 <XpRewardLine xp={calculateGameXP("word-tetris", score)} />
               )}
-              {lines >= 20 && (
+              {badgeJustUnlocked && (
                 <BadgeUnlockLine className="text-orange-400 font-bold mb-2 text-sm" glowColor="rgba(251, 146, 60, 0.7)">
                   🧱 Tetris Master badge unlocked!
                 </BadgeUnlockLine>

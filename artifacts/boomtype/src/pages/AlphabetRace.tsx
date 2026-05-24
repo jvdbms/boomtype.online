@@ -23,6 +23,7 @@ export default function AlphabetRace() {
   const [gameState, setGameState] = useState<"idle" | "ready" | "playing" | "done">("idle");
   const [mode, setMode] = useState(MODES[0]);
   const [currentIdx, setCurrentIdx] = useState(0);
+  const [badgeJustUnlocked, setBadgeJustUnlocked] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [bestTimes, setBestTimes] = useState<Record<string, number>>(() => {
     try { return JSON.parse(localStorage.getItem(HS_KEY) || "{}"); } catch { return {}; }
@@ -85,7 +86,7 @@ export default function AlphabetRace() {
         setGameState("done");
         playGameOver();
         addGameXP(calculateGameXP("alphabet-race", 1));
-        if (mode.id === "az" && t < 8) awardGameBadge("alphabet-ace");
+        setBadgeJustUnlocked(mode.id === "az" && t < 8 && awardGameBadge("alphabet-ace"));
       } else {
         setCurrentIdx(prev => prev + 1);
       }
@@ -161,7 +162,7 @@ export default function AlphabetRace() {
                 )}
                 <p className="text-muted-foreground text-sm mb-2">Mistakes: {mistakes}</p>
                 <XpRewardLine xp={calculateGameXP("alphabet-race", 1)} />
-                {mode.id === "az" && lastTime < 8 && (
+                {badgeJustUnlocked && (
                   <BadgeUnlockLine className="text-yellow-400 font-bold text-sm" glowColor="rgba(250, 204, 21, 0.7)">
                     🔤 Alphabet Ace badge unlocked!
                   </BadgeUnlockLine>

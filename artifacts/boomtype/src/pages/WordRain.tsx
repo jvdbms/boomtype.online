@@ -36,6 +36,7 @@ export default function WordRain() {
   const [input, setInput] = useState("");
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
+  const [badgeJustUnlocked, setBadgeJustUnlocked] = useState(false);
   const [wave, setWave] = useState(1);
   const [gameState, setGameState] = useState<"idle" | "playing" | "over">("idle");
   const [destroyed, setDestroyed] = useState<number[]>([]);
@@ -131,7 +132,7 @@ export default function WordRain() {
             setNewHighScore(true);
           }
           addGameXP(calculateGameXP("word-rain", fs));
-          if (fs >= 30) awardGameBadge("word-warden");
+          setBadgeJustUnlocked(fs >= 30 && awardGameBadge("word-warden"));
           const storedNick = getNickname();
           if (storedNick) {
             setNicknameInput(storedNick);
@@ -293,7 +294,7 @@ export default function WordRain() {
                 {finalScoreRef.current > 0 && (
                   <XpRewardLine xp={calculateGameXP("word-rain", finalScoreRef.current)} />
                 )}
-                {finalScoreRef.current >= 30 && (
+                {badgeJustUnlocked && (
                   <BadgeUnlockLine className="text-blue-400 font-bold mb-1 text-sm" glowColor="rgba(96, 165, 250, 0.7)">
                     🌧️ Word Warden badge unlocked!
                   </BadgeUnlockLine>

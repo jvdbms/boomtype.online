@@ -29,6 +29,7 @@ export default function PipeRun() {
   const [words, setWords] = useState<PipeWord[]>([]);
   const [input, setInput] = useState("");
   const [score, setScore] = useState(0);
+  const [badgeJustUnlocked, setBadgeJustUnlocked] = useState(false);
   const [lives, setLives] = useState(3);
   const [level, setLevel] = useState(1);
   const [highScore, setHighScore] = useState(() => parseInt(localStorage.getItem(HS_KEY) || "0", 10));
@@ -64,7 +65,7 @@ export default function PipeRun() {
       setHighScore(fs);
     }
     addGameXP(calculateGameXP("pipe-run", fs));
-    if (fs >= 30) awardGameBadge("pipe-cleaner");
+    setBadgeJustUnlocked(fs >= 30 && awardGameBadge("pipe-cleaner"));
   }, [playGameOver]);
 
   // Game loop
@@ -192,7 +193,7 @@ export default function PipeRun() {
               {score > 0 && (
                 <XpRewardLine xp={calculateGameXP("pipe-run", score)} />
               )}
-              {score >= 30 && (
+              {badgeJustUnlocked && (
                 <BadgeUnlockLine className="text-green-400 font-bold mb-2 text-sm" glowColor="rgba(74, 222, 128, 0.7)">
                   🔧 Pipe Cleaner badge unlocked!
                 </BadgeUnlockLine>

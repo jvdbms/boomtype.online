@@ -60,6 +60,7 @@ export default function BubblePop() {
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [input, setInput] = useState("");
   const [score, setScore] = useState(0);
+  const [badgeJustUnlocked, setBadgeJustUnlocked] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60);
   const [highScore, setHighScore] = useState(() => parseInt(localStorage.getItem(HS_KEY) || "0", 10));
   const [keySet, setKeySet] = useState<keyof typeof KEY_SETS>("all");
@@ -141,7 +142,7 @@ export default function BubblePop() {
     }
     if (gameState === "over") {
       addGameXP(calculateGameXP("bubble-pop", score));
-      if (score >= 100) awardGameBadge("bubble-master");
+      setBadgeJustUnlocked(score >= 100 && awardGameBadge("bubble-master"));
     }
   }, [gameState, score]);
 
@@ -221,7 +222,7 @@ export default function BubblePop() {
               {score > 0 && (
                 <XpRewardLine xp={calculateGameXP("bubble-pop", score)} />
               )}
-              {score >= 100 && (
+              {badgeJustUnlocked && (
                 <BadgeUnlockLine className="text-cyan-400 font-bold mb-4 text-sm" glowColor="rgba(34, 211, 238, 0.7)">
                   🫧 Bubble Master badge unlocked!
                 </BadgeUnlockLine>

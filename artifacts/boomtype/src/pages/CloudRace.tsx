@@ -31,6 +31,7 @@ function pickWord(pool: string[]): string {
 
 export default function CloudRace() {
   const [gameState, setGameState] = useState<"idle" | "countdown" | "racing" | "done">("idle");
+  const [badgeJustUnlocked, setBadgeJustUnlocked] = useState(false);
   const [playerPos, setPlayerPos] = useState(0);
   const [cpuPos, setCpuPos] = useState(0);
   const [currentWord, setCurrentWord] = useState("");
@@ -67,10 +68,11 @@ export default function CloudRace() {
         localStorage.setItem(HS_KEY, wordsTypedRef.current.toString());
       }
       addGameXP(calculateGameXP("cloud-race", wordsTypedRef.current));
-      awardGameBadge("cloud-racer");
+      setBadgeJustUnlocked(awardGameBadge("cloud-racer"));
     } else {
       playGameOver();
       addGameXP(calculateGameXP("cloud-race", Math.floor(wordsTypedRef.current / 2)));
+      setBadgeJustUnlocked(false);
     }
   }, [highScore, playCombo, playGameOver]);
 
@@ -245,7 +247,7 @@ export default function CloudRace() {
                   : calculateGameXP("cloud-race", Math.floor(wordsTyped / 2));
                 return xp > 0 ? <XpRewardLine xp={xp} /> : null;
               })()}
-              {result === "win" && (
+              {badgeJustUnlocked && (
                 <BadgeUnlockLine className="text-sky-400 font-bold mb-4 text-sm" glowColor="rgba(56, 189, 248, 0.7)">
                   ☁️ Cloud Racer badge unlocked!
                 </BadgeUnlockLine>

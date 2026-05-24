@@ -37,6 +37,7 @@ export default function SpeedBurst() {
   const [input, setInput] = useState("");
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(0);
+  const [badgeJustUnlocked, setBadgeJustUnlocked] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60);
   const [gameState, setGameState] = useState<"idle" | "playing" | "over">("idle");
   const [highScore, setHighScore] = useState(() => parseInt(localStorage.getItem(HIGH_SCORE_KEY) || "0", 10));
@@ -132,7 +133,7 @@ export default function SpeedBurst() {
               setNewHighScore(true);
             }
             addGameXP(calculateGameXP("speed-burst", s));
-            if (s >= 50) awardGameBadge("speed-freak");
+            setBadgeJustUnlocked(s >= 50 && awardGameBadge("speed-freak"));
             const storedNick = getNickname();
             if (storedNick) {
               setNicknameInput(storedNick);
@@ -272,7 +273,7 @@ export default function SpeedBurst() {
                 {finalScore > 0 && (
                   <XpRewardLine xp={calculateGameXP("speed-burst", finalScore)} />
                 )}
-                {finalScore >= 50 && (
+                {badgeJustUnlocked && (
                   <BadgeUnlockLine className="text-purple-400 font-bold mb-1 text-sm" glowColor="rgba(168, 85, 247, 0.7)">
                     ⚡ Speed Freak badge unlocked!
                   </BadgeUnlockLine>

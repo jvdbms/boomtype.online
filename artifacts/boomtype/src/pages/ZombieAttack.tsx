@@ -38,6 +38,7 @@ export default function ZombieAttack() {
   const [input, setInput] = useState("");
   const [score, setScore] = useState(0);
   const [playerHp, setPlayerHp] = useState(100);
+  const [badgeJustUnlocked, setBadgeJustUnlocked] = useState(false);
   const [wave, setWave] = useState(1);
   const [gameState, setGameState] = useState<"idle" | "playing" | "over">("idle");
   const [killedIds, setKilledIds] = useState<number[]>([]);
@@ -133,7 +134,7 @@ export default function ZombieAttack() {
             setNewHighScore(true);
           }
           addGameXP(calculateGameXP("zombie-attack", fs));
-          if (fs >= 50) awardGameBadge("zombie-slayer");
+          setBadgeJustUnlocked(fs >= 50 && awardGameBadge("zombie-slayer"));
           const storedNick = getNickname();
           if (storedNick) {
             setNicknameInput(storedNick);
@@ -314,7 +315,7 @@ export default function ZombieAttack() {
                 {finalScoreRef.current > 0 && (
                   <XpRewardLine xp={calculateGameXP("zombie-attack", finalScoreRef.current)} />
                 )}
-                {finalScoreRef.current >= 50 && (
+                {badgeJustUnlocked && (
                   <BadgeUnlockLine className="text-red-400 font-bold mb-1 text-sm" glowColor="rgba(248, 113, 113, 0.7)">
                     🧟 Zombie Slayer badge unlocked!
                   </BadgeUnlockLine>
